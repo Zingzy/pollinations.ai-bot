@@ -47,6 +47,14 @@ def delete_prompt_data(message_id: int):
         print(e)
 
 
+def get_prompts_counts():
+    try:
+        return collection.count_documents({})
+    except Exception as e:
+        print(e)
+        return None
+
+
 async def generate_image(
     prompt: str,
     width: int = 500,
@@ -60,7 +68,8 @@ async def generate_image(
     model = model.lower()
 
     print(
-        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, model: {model}, negative: {negative}, cached: {cached}, nologo: {nologo}, enhance: {enhance}", file=sys.stderr
+        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, model: {model}, negative: {negative}, cached: {cached}, nologo: {nologo}, enhance: {enhance}",
+        file=sys.stderr,
     )
 
     seed = str(random.randint(0, 1000000000))

@@ -1,15 +1,15 @@
-from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 import datetime
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from api import *
 import statistics
 import time
 import sys
 from constants import *
 from api import *
+from utils import client, get_prompts_counts
 
 
 load_dotenv()
@@ -40,6 +40,8 @@ commands_ = {
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
     "</help:1187383172992872509> ❓": "Displays this",
+    "</invite:1187383172992872509> 📨": "Invite the bot to your server",
+    "</about:1187383172992872509> ℹ️": "About the bot",
 }
 
 
@@ -50,6 +52,17 @@ class pollinationsBot(commands.Bot):
         )
         self.synced = False
 
+    @tasks.loop(minutes=5)
+    async def change_status(self):
+        count = get_prompts_counts()
+
+        await bot.change_presence(
+            activity=discord.CustomActivity(
+                name="Custom Status",
+                state=f"Generated {count} Images so far...",
+            )
+        )
+
     async def on_ready(self):
         await load()
 
@@ -59,12 +72,7 @@ class pollinationsBot(commands.Bot):
         await self.wait_until_ready()
         if not self.synced:
             await self.tree.sync()
-            await bot.change_presence(
-                activity=discord.CustomActivity(
-                    name="Custom Status",
-                    state=f"Converting Text to Image.",
-                )
-            )
+            self.change_status.start()
             self.synced = True
 
         print(f"Logged in as {self.user.name} (ID: {self.user.id})")
@@ -82,19 +90,19 @@ async def load():
 
 @bot.event
 async def on_message(message):
-	if message.author == bot.user:
-		return
+    if message.author == bot.user:
+        return
 
-	if bot.user in message.mentions:
-		if message.type is not discord.MessageType.reply:
-			embed = discord.Embed(
-				description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. Type `!help` or click </help:1187383172992872509> to get started.",
-				color=discord.Color.og_blurple(),
-			)
+    if bot.user in message.mentions:
+        if message.type is not discord.MessageType.reply:
+            embed = discord.Embed(
+                description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. Type `!help` or click </help:1187383172992872509> to get started.",
+                color=discord.Color.og_blurple(),
+            )
 
-			await message.reply(embed=embed)
+            await message.reply(embed=embed)
 
-	await bot.process_commands(message)
+    await bot.process_commands(message)
 
 
 @bot.command()
@@ -131,7 +139,6 @@ async def ping(ctx):
         message = await ctx.send(embed=embed)
 
         end = time.perf_counter()
-
         latency = (end - ctx.start) * 1000
 
         embed.add_field(name="Ping", value=f"{bot.latency * 1000:.2f} ms", inline=False)
@@ -147,7 +154,6 @@ async def ping(ctx):
             )
 
         global start_time
-
         current_time = datetime.datetime.utcnow()
         delta = current_time - start_time
 
@@ -188,6 +194,70 @@ async def help(ctx):
     embed.set_thumbnail(url=profilePicture)
     for i in commands_.keys():
         embed.add_field(name=i, value=commands_[i], inline=False)
+
+    embed.set_footer(
+        text="Information requested by: {}".format(ctx.author.name),
+        icon_url=ctx.author.avatar.url,
+    )
+
+    await ctx.send(embed=embed)
+
+
+@bot.hybrid_command(name="invite", description="Invite the bot to your server")
+async def invite(ctx):
+    embed = discord.Embed(
+        title="Invite the bot to your server",
+        url="https://discord.com/api/oauth2/authorize?client_id=1123551005993357342&permissions=534791060544&scope=bot%20applications.commands",
+        description="Click the link above to invite the bot to your server",
+        color=discord.Color.og_blurple(),
+    )
+
+    embed.set_footer(
+        text="Information requested by: {}".format(ctx.author.name),
+        icon_url=ctx.author.avatar.url,
+    )
+
+    await ctx.send(embed=embed)
+
+
+@bot.hybrid_command(name="about", description="About the bot")
+async def about(ctx):
+    user = bot.get_user(1123551005993357342)
+    profilePicture = user.avatar.url
+
+    embed = discord.Embed(
+        title="Pollinations.ai Bot",
+        url="https://pollinations.ai/",
+        description="I am the official Pollinations.ai Bot. I can generate AI Images from your prompts ✨.",
+        color=discord.Color.og_blurple(),
+    )
+
+    embed.set_thumbnail(url=profilePicture)
+    embed.add_field(
+        name="What is Pollinations.ai? <:pollinations:1187437987596869742>",
+        value="Pollinations.ai is a platform for creating AI-generated images completely for free. We have a growing collection of AI models that you can use to generate images.",
+        inline=False,
+    )
+    embed.add_field(
+        name="What can I do with this bot? 🤖",
+        value="You can use this bot to generate AI images using our platform.",
+        inline=False,
+    )
+    embed.add_field(
+        name="How do I use this bot? 🤔",
+        value="You can use this bot by typing `!help` or clicking </help:1187383172992872509> to get started.",
+        inline=False,
+    )
+    embed.add_field(
+        name="How do I report a bug? 🪲",
+        value="You can report a bug by joining our [Discord Server](https://discord.gg/SFasNG4n6b).",
+        inline=False,
+    )
+    embed.add_field(
+        name="How do I contribute to this project? <:github:1187437992093155338>",
+        value="This project is open source. You can contribute to this project by visiting our [GitHub Repository]('https://github.com/zingzy/pollinations.ai-bot').",
+        inline=False,
+    )
 
     embed.set_footer(
         text="Information requested by: {}".format(ctx.author.name),
