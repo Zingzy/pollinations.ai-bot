@@ -40,8 +40,8 @@ commands_ = {
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
     "</help:1187383172992872509> ❓": "Displays this",
-    "</invite:1187383172992872509> 📨": "Invite the bot to your server",
-    "</about:1187383172992872509> ℹ️": "About the bot",
+    "</invite:1187439448833675286> 📨": "Invite the bot to your server",
+    "</about:1187439448833675288> ℹ️": "About the bot",
 }
 
 
@@ -232,9 +232,12 @@ async def about(ctx):
         color=discord.Color.og_blurple(),
     )
 
+    pollinations_emoji = discord.utils.get(bot.emojis, id=1187437987596869742)
+    github_emoji = discord.utils.get(bot.emojis, id=1187437992093155338)
+
     embed.set_thumbnail(url=profilePicture)
     embed.add_field(
-        name="What is Pollinations.ai? <:pollinations:1187437987596869742>",
+        name=f"What is Pollinations.ai? {pollinations_emoji}",
         value="Pollinations.ai is a platform for creating AI-generated images completely for free. We have a growing collection of AI models that you can use to generate images.",
         inline=False,
     )
@@ -254,8 +257,8 @@ async def about(ctx):
         inline=False,
     )
     embed.add_field(
-        name="How do I contribute to this project? <:github:1187437992093155338>",
-        value="This project is open source. You can contribute to this project by visiting our [GitHub Repository]('https://github.com/zingzy/pollinations.ai-bot').",
+        name=f"How do I contribute to this project? {github_emoji}",
+        value="This project is open source. You can contribute to this project by visiting our [GitHub Repository](https://github.com/zingzy/pollinations.ai-bot).",
         inline=False,
     )
 
