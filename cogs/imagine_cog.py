@@ -195,7 +195,7 @@ class Imagine(commands.Cog):
     @app_commands.describe(prompt="Imagine a prompt", height="Height of the image", width="Width of the image", negative="The things not to include in the image", cached="Removes the image seed", nologo="Remove the logo", enhance="Disables Prompt enhancing if set to False", private="Only you can see the generated Image if set to True")
     async def multiimagine_command(self, interaction, prompt:str, width:int = 1000, height:int = 1000, negative:str|None = None, cached:bool = False, nologo:bool = False, enhance:bool = True, private:bool = False):
 
-        await interaction.response.send_message(embed=discord.Embed(title="Generating Image", description="Please wait while we generate your image", color=discord.Color.blurple()), ephemeral=False)
+        await interaction.response.send_message(embed=discord.Embed(title="Generating Image", description="Please wait while we generate your image", color=discord.Color.blurple()), ephemeral=True)
 
         models = ['Deliberate', 'Playground', 'Pixart', 'Dreamshaper', 'Turbo', 'Formulaxl', 'Dpo']
 
@@ -216,13 +216,13 @@ class Imagine(commands.Cog):
                 time = datetime.datetime.now()
                 dic, image = await generate_image(prompt, width, height, i, negative, cached, nologo, enhance)
                 time_taken = datetime.datetime.now() - time
-                await interaction.followup.send(f"Generated {i} model Image\nTime taken : `{time_taken.total_seconds()}`", ephemeral=False)
+                await interaction.followup.send(f"Generated {i} model Image\nTime taken : `{time_taken.total_seconds()}`", ephemeral=True)
                 description += f"Image {counter} model :  `{i}`\n"
                 counter += 1
                 images.append(image)
             except Exception as e:
                 print(e)
-                await interaction.followup.send(embed=discord.Embed(title=f"Error generating image of `{i}` model", description=f"{e}", color=discord.Color.red()), ephemeral=False)
+                await interaction.followup.send(embed=discord.Embed(title=f"Error generating image of `{i}` model", description=f"{e}", color=discord.Color.red()), ephemeral=True)
 
         files = []
 
