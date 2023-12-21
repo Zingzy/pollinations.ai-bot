@@ -20,6 +20,31 @@ load_dotenv()
 start_time = None
 latencies = []
 
+commands_ = {
+    "</imagine:1123582901544558612> 🎨": """Generates AI Images based on your prompts
+- **prompt** 🗣️ : Your prompt for the Image to be generated
+- **model** 🤖 : The model to be used for generating the Image
+- **width** ↔️ : The width of your prompted Image
+- **height** ↕️ : The height of your prompted Image
+- **cached** : specifies whether to return a cached image
+- **negative** ❎ : Specifies what not to be in the generated images
+- **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
+- **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
+- **private** 🔒 : when set to True the generated Image will only be visible to you
+""",
+    "</multi-imagine:1187375074722975837> 🎨": """Generates AI Images using all available models
+- **prompt** 🗣️ : Your prompt for the Image to be generated
+- **width** ↔️ : The width of your prompted Image
+- **height** ↕️ : The height of your prompted Image
+- **cached** : specifies whether to return a cached image
+- **negative** ❎ : Specifies what not to be in the generated images
+- **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
+- **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
+- **private** 🔒 : when set to True the generated Image will only be visible to you
+""",
+    "</help:1125407202388230155> ❓": "Displays this",
+}
+
 
 class pollinationsBot(commands.Bot):
     def __init__(self):
@@ -53,14 +78,23 @@ bot = pollinationsBot()
 
 
 async def load():
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py'):
-            await bot.load_extension(f'cogs.{filename[:-3]}')
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"cogs.{filename[:-3]}")
+
 
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
+
+    if bot.user in message.mentions:
+        embed = discord.Embed(
+            description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. Type `!help` or click </help:1125407202388230155> to get started.",
+            color=discord.Color.og_blurple(),
+        )
+
+        await message.reply(embed=embed)
 
     await bot.process_commands(message)
 
@@ -102,16 +136,16 @@ async def ping(ctx):
 
         latency = (end - ctx.start) * 1000
 
+        embed.add_field(name="Ping", value=f"{bot.latency * 1000:.2f} ms", inline=False)
         embed.add_field(name="Message Latency", value=f"{latency:.2f} ms", inline=False)
-        embed.add_field(
-            name="Websocket Latency", value=f"{bot.latency * 1000:.2f} ms", inline=False
-        )
 
         # Calculate the average ping of the bot in the last 10 minutes
         if latencies:
             average_ping = statistics.mean(latencies)
             embed.add_field(
-                name="Average Ping", value=f"{average_ping:.2f} ms", inline=False
+                name="Average Message Latency",
+                value=f"{average_ping:.2f} ms",
+                inline=False,
             )
 
         global start_time
@@ -141,31 +175,30 @@ async def ping(ctx):
         print(e, file=sys.stdout)
 
 
-# @bot.hybrid_command(name="help", description="View the various commands of this server")
-# async def help(ctx):
-#     user = bot.get_user(1168874960081649684)
-#     profilePicture = user.avatar.url
+@bot.hybrid_command(name="help", description="View the various commands of this server")
+async def help(ctx):
+    user = bot.get_user(1123551005993357342)
+    profilePicture = user.avatar.url
 
-#     embed = discord.Embed(
-#         title="SecretSanctuary Bot Commands",
-#         url=APP_URI,
-#         description="Here is the list of the available commands:",
-#         color=discord.Color.og_blurple(),
-#     )
+    embed = discord.Embed(
+        title="Pollinations.ai Bot Commands",
+        url=APP_URI,
+        description="Here is the list of the available commands:",
+        color=discord.Color.og_blurple(),
+    )
 
-#     embed.set_thumbnail(url=profilePicture)
-#     for i in commands_.keys():
-#         embed.add_field(name=i, value=commands_[i], inline=False)
+    embed.set_thumbnail(url=profilePicture)
+    for i in commands_.keys():
+        embed.add_field(name=i, value=commands_[i], inline=False)
 
-#     embed.set_footer(
-#         text="Information requested by: {}".format(ctx.author.name),
-#         icon_url=ctx.author.avatar.url,
-#     )
+    embed.set_footer(
+        text="Information requested by: {}".format(ctx.author.name),
+        icon_url=ctx.author.avatar.url,
+    )
 
-#     await ctx.send(embed=embed)
+    await ctx.send(embed=embed)
 
 
 if __name__ == "__main__":
-    # run_server()
     keep_alive()
     bot.run(token=TOKEN)

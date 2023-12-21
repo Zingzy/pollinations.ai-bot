@@ -150,6 +150,7 @@ class Imagine(commands.Cog):
 
     @app_commands.command(name="imagine", description="Imagine a prompt")
     @app_commands.autocomplete(model=model_autocomplete)
+    @app_commands.checks.cooldown(1, 15)
     @app_commands.describe(prompt="Imagine a prompt", height="Height of the image", width="Width of the image", negative="The things not to include in the image", cached="Removes the image seed", nologo="Remove the logo", enhance="Disables Prompt enhancing if set to False", private="Only you can see the generated Image if set to True")
     async def imagine_command(self, interaction, prompt:str, model: str = "Dreamshaper", width:int = 1000, height:int = 1000, negative:str|None = None, cached:bool = False, nologo:bool = False, enhance:bool = True, private:bool = False):
         await interaction.response.send_message(embed=discord.Embed(title="Generating Image", description="Please wait while we generate your image", color=discord.Color.blurple()), ephemeral=True)
@@ -192,6 +193,7 @@ class Imagine(commands.Cog):
         return
 
     @app_commands.command(name="multi-imagine", description="Imagine multiple prompts")
+    @app_commands.checks.cooldown(1, 30)
     @app_commands.describe(prompt="Imagine a prompt", height="Height of the image", width="Width of the image", negative="The things not to include in the image", cached="Removes the image seed", nologo="Remove the logo", enhance="Disables Prompt enhancing if set to False", private="Only you can see the generated Image if set to True")
     async def multiimagine_command(self, interaction, prompt:str, width:int = 1000, height:int = 1000, negative:str|None = None, cached:bool = False, nologo:bool = False, enhance:bool = True, private:bool = False):
 
@@ -240,6 +242,55 @@ class Imagine(commands.Cog):
         # dic["guild_id"] = interaction.guild.id
 
         return
+
+    @imagine_command.error
+    async def imagine_command_error(
+        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+    ):
+        if isinstance(error, app_commands.CommandOnCooldown):
+            end_time = datetime.datetime.now() + datetime.timedelta(
+                seconds=error.retry_after
+            )
+            end_time_str = end_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+            end_time_ts = f"<t:{int(end_time.timestamp())}>"
+
+            hours, remainder = divmod(error.retry_after, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            seconds = round(seconds)
+            time_left = f"{ hours + ' hour, ' if not hours<1 else ''}{int(minutes)} minute{'s' if minutes != 1 else ''} and {seconds} second{'s' if seconds != 1 else ''}"
+
+            embed = discord.Embed(
+                title="⏳ Cooldown",
+                description=f"You have to wait until **{end_time_ts}** ({time_left}) before using the </imagine:1123582901544558612> command again.",
+                color=discord.Color.red(),
+            )
+
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @multiimagine_command.error
+    async def multiimagine_command_error(
+        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+    ):
+        if isinstance(error, app_commands.CommandOnCooldown):
+            end_time = datetime.datetime.now() + datetime.timedelta(
+                seconds=error.retry_after
+            )
+            end_time_str = end_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+            end_time_ts = f"<t:{int(end_time.timestamp())}>"
+
+            hours, remainder = divmod(error.retry_after, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            seconds = round(seconds)
+            time_left = f"{ hours + ' hour, ' if not hours<1 else ''}{int(minutes)} minute{'s' if minutes != 1 else ''} and {seconds} second{'s' if seconds != 1 else ''}"
+
+            embed = discord.Embed(
+                title="⏳ Cooldown",
+                description=f"You have to wait until **{end_time_ts}** ({time_left}) before using the <multi-imagine:1187375074722975837> again.",
+                color=discord.Color.red(),
+            )
+
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(Imagine(bot))

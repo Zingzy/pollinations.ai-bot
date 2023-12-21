@@ -18,6 +18,7 @@ except Exception as e:
 db = client["pollinations"]
 collection = db["prompts"]
 
+
 def get_prompt_data(message_id: int):
     try:
         return collection.find_one({"_id": message_id})
@@ -25,11 +26,13 @@ def get_prompt_data(message_id: int):
         print(e)
         return None
 
+
 def save_prompt_data(message_id: int, data: dict):
     try:
         collection.insert_one(data)
     except Exception as e:
         print(e)
+
 
 def update_prompt_data(message_id: int, data: dict):
     try:
@@ -37,17 +40,29 @@ def update_prompt_data(message_id: int, data: dict):
     except Exception as e:
         print(e)
 
+
 def delete_prompt_data(message_id: int):
     try:
         collection.delete_one({"_id": message_id})
     except Exception as e:
         print(e)
 
-async def generate_image(prompt: str, width: int = 500, height: int = 500, model: str = "turbo", negative: str|None = None, cached:bool = False, nologo:bool = False, enhance:bool = True):
-    
+
+async def generate_image(
+    prompt: str,
+    width: int = 500,
+    height: int = 500,
+    model: str = "turbo",
+    negative: str | None = None,
+    cached: bool = False,
+    nologo: bool = False,
+    enhance: bool = True,
+):
     model = model.lower()
 
-    print(f"Generating image with prompt: {prompt}, width: {width}, height: {height}, model: {model}, negative: {negative}, cached: {cached}, nologo: {nologo}, enhance: {enhance}")
+    print(
+        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, model: {model}, negative: {negative}, cached: {cached}, nologo: {nologo}, enhance: {enhance}"
+    )
 
     seed = str(random.randint(0, 1000000000))
 
@@ -69,7 +84,7 @@ async def generate_image(prompt: str, width: int = 500, height: int = 500, model
         "cached": cached,
         "nologo": nologo,
         "enhance": enhance,
-        "bookmark_url": quote(url, safe=':/&=?'),
+        "bookmark_url": quote(url, safe=":/&=?"),
     }
 
     dic["seed"] = seed if not cached else None
