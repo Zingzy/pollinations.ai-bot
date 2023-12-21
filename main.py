@@ -1,12 +1,9 @@
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
-import json
-import requests
 import datetime
 import discord
 from discord.ext import commands
-from discord import app_commands, ui
 from api import *
 import statistics
 import time
@@ -42,7 +39,7 @@ commands_ = {
 - **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
-    "</help:1125407202388230155> ❓": "Displays this",
+    "</help:1187383172992872509> ❓": "Displays this",
 }
 
 
@@ -85,18 +82,19 @@ async def load():
 
 @bot.event
 async def on_message(message):
-    if message.author == bot.user:
-        return
+	if message.author == bot.user:
+		return
 
-    if bot.user in message.mentions:
-        embed = discord.Embed(
-            description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. Type `!help` or click </help:1125407202388230155> to get started.",
-            color=discord.Color.og_blurple(),
-        )
+	if bot.user in message.mentions:
+		if message.type is not discord.MessageType.reply:
+			embed = discord.Embed(
+				description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. Type `!help` or click </help:1187383172992872509> to get started.",
+				color=discord.Color.og_blurple(),
+			)
 
-        await message.reply(embed=embed)
+			await message.reply(embed=embed)
 
-    await bot.process_commands(message)
+	await bot.process_commands(message)
 
 
 @bot.command()

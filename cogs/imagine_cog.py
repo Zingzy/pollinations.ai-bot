@@ -1,10 +1,7 @@
 import datetime
-import random
 import discord
 from discord import app_commands, ui
 from discord.ext import commands
-from discord.ui import Button
-import json
 
 from utils import *
 from constants import *
@@ -232,8 +229,11 @@ class Imagine(commands.Cog):
             file_name = f"{prompt}_{idx}.png"
             files.append(discord.File(img, file_name))
 
-        response = await interaction.followup.send(f'## `{prompt}` - {interaction.user.mention}\n{description}', files=files, ephemeral= False) if private else await interaction.channel.send(f'## `{prompt}` - {interaction.user.mention}\n{description}', files=files)
-
+        if not len(files) == 0:
+            response = await interaction.followup.send(f'## `{prompt}` - {interaction.user.mention}\n{description}', files=files, ephemeral= False) if private else await interaction.channel.send(f'## `{prompt}` - {interaction.user.mention}\n{description}', files=files)
+        else:
+            await interaction.followup.send(embed=discord.Embed(title="Error", description="No images were generated", color=discord.Color.red()), ephemeral=True)
+            return
         # id = response.id
         # dic["message_id"] = id
         # dic["type"] = "multi"
@@ -285,7 +285,7 @@ class Imagine(commands.Cog):
 
             embed = discord.Embed(
                 title="⏳ Cooldown",
-                description=f"You have to wait until **{end_time_ts}** ({time_left}) before using the <multi-imagine:1187375074722975837> again.",
+                description=f"You have to wait until **{end_time_ts}** ({time_left}) before using the </multi-imagine:1187375074722975837> again.",
                 color=discord.Color.red(),
             )
 

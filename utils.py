@@ -1,11 +1,10 @@
-import discord.ext
-import requests
 import random
 from constants import *
 import aiohttp
 import io
 from urllib.parse import quote
 from pymongo import MongoClient
+import sys
 
 client = MongoClient(MONGODB_URI)
 
@@ -61,7 +60,7 @@ async def generate_image(
     model = model.lower()
 
     print(
-        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, model: {model}, negative: {negative}, cached: {cached}, nologo: {nologo}, enhance: {enhance}"
+        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, model: {model}, negative: {negative}, cached: {cached}, nologo: {nologo}, enhance: {enhance}", file=sys.stderr
     )
 
     seed = str(random.randint(0, 1000000000))
