@@ -1,10 +1,12 @@
-import random
-from constants import *
-import aiohttp
 import io
+import sys
+import random
+import aiohttp
+
+from constants import *
+
 from urllib.parse import quote
 from pymongo import MongoClient
-import sys
 
 client = MongoClient(MONGODB_URI)
 
