@@ -1,12 +1,15 @@
-from dotenv import load_dotenv
 import os
-import datetime
-import discord
-from discord.ext import commands, tasks
-from api import *
-import statistics
-import time
 import sys
+import time
+import discord
+import datetime
+import statistics
+
+from dotenv import load_dotenv
+
+from discord.ext import commands, tasks
+
+from api import *
 from constants import *
 from api import *
 from utils import client, get_prompts_counts
@@ -42,7 +45,7 @@ commands_ = {
 """,
     "</help:1187383172992872509>   ❓": "Displays this message.",
     "</invite:1187439448833675286> 📨": "Invite the bot to your server",
-    "</about:1187439448833675288>   ℹ️": "About the bot",
+    "</about:1187439448833675288>  ℹ️": "About the bot",
 }
 
 
