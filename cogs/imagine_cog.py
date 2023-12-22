@@ -179,6 +179,7 @@ class Imagine(commands.Cog):
 
         if private:
             response = await interaction.followup.send(f"## {prompt} - {interaction.user.mention}", file=image_file, ephemeral=True)
+            return
         else:
             response = await interaction.channel.send(f"## {prompt} - {interaction.user.mention}", file=image_file, view=view)
 
