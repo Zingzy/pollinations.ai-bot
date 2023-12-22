@@ -15,12 +15,13 @@ except Exception as e:
     print(e)
 
 db = client["pollinations"]
-collection = db["prompts"]
+prompts = db["prompts"]
+users = db["users"]
 
 
 def get_prompt_data(message_id: int):
     try:
-        return collection.find_one({"_id": message_id})
+        return prompts.find_one({"_id": message_id})
     except Exception as e:
         print(e)
         return None
@@ -28,31 +29,53 @@ def get_prompt_data(message_id: int):
 
 def save_prompt_data(message_id: int, data: dict):
     try:
-        collection.insert_one(data)
+        prompts.insert_one(data)
     except Exception as e:
         print(e)
 
 
 def update_prompt_data(message_id: int, data: dict):
     try:
-        collection.update_one({"_id": message_id}, {"$set": data})
+        prompts.update_one({"_id": message_id}, {"$set": data})
     except Exception as e:
         print(e)
 
 
 def delete_prompt_data(message_id: int):
     try:
-        collection.delete_one({"_id": message_id})
+        prompts.delete_one({"_id": message_id})
     except Exception as e:
         print(e)
 
 
 def get_prompts_counts():
     try:
-        return collection.count_documents({})
+        return prompts.count_documents({})
     except Exception as e:
         print(e)
         return None
+
+
+def get_user_data(user_id: int):
+    try:
+        return users.find_one({"_id": user_id})
+    except Exception as e:
+        print(e)
+        return None
+
+
+def save_user_data(user_id: int, data: dict):
+    try:
+        users.insert_one(data)
+    except Exception as e:
+        print(e)
+
+
+def update_user_data(user_id: int, data: dict):
+    try:
+        users.update_one({"_id": user_id}, {"$set": data})
+    except Exception as e:
+        print(e)
 
 
 async def generate_image(

@@ -62,6 +62,20 @@ class Imagine(commands.Cog):
             dic["bookmarks"] = []
             dic["likes"] = []
 
+            user_data = get_user_data(interaction.user.id)
+            if user_data is None:
+                user_data = {
+                    "_id": interaction.user.id,
+                    "bookmarks": [],
+                    "likes": [],
+                    "prompts": [],
+                    "last_prompt": None,
+                }
+                save_user_data(interaction.user.id, user_data)
+
+            user_data["prompts"].append(response.id)
+
+            update_user_data(interaction.user.id, user_data)
             save_prompt_data(message_id, dic)
 
         @discord.ui.button(label="0", style=discord.ButtonStyle.secondary, custom_id="like-button", emoji="<:like:1187101385230143580>")
@@ -71,21 +85,41 @@ class Imagine(commands.Cog):
                 message_data = get_prompt_data(id)
                 likes = message_data["likes"]
 
+                user_data = get_user_data(interaction.user.id)
+                if user_data is None:
+                    user_data = {
+                        "_id": interaction.user.id,
+                        "bookmarks": {},
+                        "likes": {},
+                        "prompts": {},
+                        "last_prompt": None,
+                    }
+                    save_user_data(interaction.user.id, user_data)
+
                 if interaction.user.id in likes:
                     likes.remove(interaction.user.id)
                     update_prompt_data(id, {"likes": likes})
                     button.label = f"{len(likes)}"
                     await interaction.response.edit_message(view=self)
+
+                    user_data["likes"].remove(id)
+                    update_user_data(interaction.user.id, user_data)
+
                     return
                 else:
                     likes.append(interaction.user.id)
                     update_prompt_data(id, {"likes": likes})
                     button.label = f"{len(likes)}"
                     await interaction.response.edit_message(view=self)
+
+                    user_data["likes"].append(id)
+                    update_user_data(interaction.user.id, user_data)
+
                     return
             except Exception as e:
                 print(e)
                 interaction.response.send_message(embed=discord.Embed(title="Error Liking the Image", description=f"{e}", color=discord.Color.red()), ephemeral=True)
+
 
         @discord.ui.button(label = "0", style=discord.ButtonStyle.secondary, custom_id="bookmark-button", emoji="<:save:1187101389822902344>")
         async def bookmark(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -106,6 +140,21 @@ class Imagine(commands.Cog):
                     embed.set_image(url=message_data["bookmark_url"])
 
                     await interaction.user.send(embed=embed)
+
+                    user_data = get_user_data(interaction.user.id)
+                    if user_data is None:
+                        user_data = {
+                            "_id": interaction.user.id,
+                            "bookmarks": [],
+                            "likes": [],
+                            "prompts": [],
+                            "last_prompt": None,
+                        }
+                        save_user_data(interaction.user.id, user_data)
+
+                    user_data["bookmarks"].append(id)
+                    update_user_data(interaction.user.id, user_data)
+
                     return
 
             except Exception as e:
@@ -117,6 +166,8 @@ class Imagine(commands.Cog):
             try:
                 data = get_prompt_data(interaction.message.id)
                 author_id = data["author"]
+                likes = data["likes"]
+                bookmarks = data["bookmarks"]
                 try:
                     int(author_id)
                 except:
@@ -128,6 +179,29 @@ class Imagine(commands.Cog):
 
                 delete_prompt_data(interaction.message.id)
                 await interaction.message.delete()
+
+                user_data = get_user_data(interaction.user.id)
+                if user_data is None:
+                    return
+
+                user_data["prompts"].remove(interaction.message.id)
+                update_user_data(interaction.user.id, user_data)
+
+                for i in likes:
+                    try:
+                        user_data = get_user_data(i)
+                        user_data["likes"].remove(interaction.message.id)
+                        update_user_data(i, user_data)
+                    except:
+                        pass
+
+                for i in bookmarks:
+                    try:
+                        user_data = get_user_data(i)
+                        user_data["bookmarks"].remove(interaction.message.id)
+                        update_user_data(i, user_data)
+                    except:
+                        pass
 
             except Exception as e:
                 print(e)
@@ -148,6 +222,7 @@ class Imagine(commands.Cog):
 
     @app_commands.command(name="imagine", description="Imagine a prompt")
     @app_commands.autocomplete(model=model_autocomplete)
+    @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 15)
     @app_commands.describe(prompt="Imagine a prompt", height="Height of the image", width="Width of the image", negative="The things not to include in the image", cached="Removes the image seed", nologo="Remove the logo", enhance="Disables Prompt enhancing if set to False", private="Only you can see the generated Image if set to True")
     async def imagine_command(self, interaction, prompt:str, model: str = "Dreamshaper", width:int = 1000, height:int = 1000, negative:str|None = None, cached:bool = False, nologo:bool = False, enhance:bool = True, private:bool = False):
@@ -168,7 +243,6 @@ class Imagine(commands.Cog):
             await interaction.followup.send(embed=discord.Embed(title="Error", description=f"Error generating image : {e}", color=discord.Color.red()), ephemeral=True)
             return
 
-        # check if the prompt contains a NSFW word
         image_file = discord.File(image, filename="image.png")
 
         for i in prompt.split(" "):
@@ -192,9 +266,22 @@ class Imagine(commands.Cog):
         dic["author"] = interaction.user.id
         dic["likes"] = []
 
-        save_prompt_data(message_id, dic)
+        user_data = get_user_data(interaction.user.id)
+        if user_data is None:
+            user_data = {
+                "_id": interaction.user.id,
+                "bookmarks": [],
+                "likes": [],
+                "prompts": [],
+                "last_prompt": None,
+            }
+            save_user_data(interaction.user.id, user_data)
 
-        return
+        user_data["prompts"].append(message_id)
+        user_data["last_prompt"] = message_id
+
+        update_user_data(interaction.user.id, user_data)
+        save_prompt_data(message_id, dic)
 
 
     @imagine_command.error
