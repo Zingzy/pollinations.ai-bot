@@ -19,29 +19,30 @@ latencies = []
 
 commands_ = {
     "</imagine:1123582901544558612> 🎨": """Generates AI Images based on your prompts
-- **prompt** 🗣️ : Your prompt for the Image to be generated
-- **model** 🤖 : The model to be used for generating the Image
-- **width** ↔️ : The width of your prompted Image
-- **height** ↕️ : The height of your prompted Image
-- **cached** : specifies whether to return a cached image
-- **negative** ❎ : Specifies what not to be in the generated images
-- **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
-- **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
-- **private** 🔒 : when set to True the generated Image will only be visible to you
+> - **prompt**   🗣️ : Your prompt for the Image to be generated
+> - **model**    🤖 : The model to be used for generating the Image
+> - **width**    ↔️  : The width of your prompted Image
+> - **height**   ↕️  : The height of your prompted Image
+> - **cached**   🗃️ : Specifies whether to return a cached image
+> - **negative** ❎ : Specifies what not to be in the generated images
+> - **nologo**   🚫 : Specifies whether to remove the logo from the generated images (default False)
+> - **enhance**  🖼️ : Specifies whether to enhance the image prompt or not (default True)
+> - **private**  🔒 : When set to True the generated Image will only be visible to you
 """,
     "</multi-imagine:1187375074722975837> 🎨": """Generates AI Images using all available models
-- **prompt** 🗣️ : Your prompt for the Image to be generated
-- **width** ↔️ : The width of your prompted Image
-- **height** ↕️ : The height of your prompted Image
-- **cached** : specifies whether to return a cached image
-- **negative** ❎ : Specifies what not to be in the generated images
-- **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
-- **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
-- **private** 🔒 : when set to True the generated Image will only be visible to you
+> - **prompt**   🗣️ : Your prompt for the Images to be generated
+> - **model**    🤖 : The model to be used for generating the Images
+> - **width**    ↔️  : The width of your prompted Images
+> - **height**   ↕️  : The height of your prompted Images
+> - **cached**   🗃️ : Specifies whether to return a cached images
+> - **negative** ❎ : Specifies what not to be in the generated images
+> - **nologo**   🚫 : Specifies whether to remove the logo from the generated images (default False)
+> - **enhance**  🖼️ : Specifies whether to enhance the images prompt or not (default True)
+> - **private**  🔒 : When set to True the generated Images will only be visible to you
 """,
-    "</help:1187383172992872509> ❓": "Displays this",
+    "</help:1187383172992872509>   ❓": "Displays this message.",
     "</invite:1187439448833675286> 📨": "Invite the bot to your server",
-    "</about:1187439448833675288> ℹ️": "About the bot",
+    "</about:1187439448833675288>   ℹ️": "About the bot",
 }
 
 
@@ -228,7 +229,7 @@ async def about(ctx):
     embed = discord.Embed(
         title="Pollinations.ai Bot",
         url="https://pollinations.ai/",
-        description="I am the official Pollinations.ai Bot. I can generate AI Images from your prompts ✨.",
+        description="> I am the official Pollinations.ai Bot. I can generate AI Images from your prompts!",
         color=discord.Color.og_blurple(),
     )
 
@@ -237,28 +238,28 @@ async def about(ctx):
 
     embed.set_thumbnail(url=profilePicture)
     embed.add_field(
-        name=f"What is Pollinations.ai? {pollinations_emoji}",
-        value="Pollinations.ai is a platform for creating AI-generated images completely for free. We have a growing collection of AI models that you can use to generate images.",
+        name=f"What is Pollinations.ai? 🌸",
+        value="> Pollinations.ai is a platform for creating AI-generated images completely for free. We have a growing collection of AI models that you can use to generate images.",
         inline=False,
     )
     embed.add_field(
         name="What can I do with this bot? 🤖",
-        value="You can use this bot to generate AI images using our platform.",
+        value="> You can use this bot to generate AI images using our platform.",
         inline=False,
     )
     embed.add_field(
         name="How do I use this bot? 🤔",
-        value="You can use this bot by typing `!help` or clicking </help:1187383172992872509> to get started.",
+        value="> You can use this bot by typing `!help` or clicking </help:1187383172992872509> to get started.",
         inline=False,
     )
     embed.add_field(
         name="How do I report a bug? 🪲",
-        value="You can report a bug by joining our [Discord Server](https://discord.gg/SFasNG4n6b).",
+        value="> You can report a bug by joining our [Discord Server](https://discord.gg/SFasNG4n6b).",
         inline=False,
     )
     embed.add_field(
         name=f"How do I contribute to this project? {github_emoji}",
-        value="This project is open source. You can contribute to this project by visiting our [GitHub Repository](https://github.com/zingzy/pollinations.ai-bot).",
+        value="> This project is open source. You can contribute to this project by visiting our [GitHub Repository](https://github.com/zingzy/pollinations.ai-bot).",
         inline=False,
     )
 
