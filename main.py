@@ -39,6 +39,7 @@ commands_ = {
 - **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
+    "</leaderboard:1188098851807166506> 🏆": "Shows the Global Leaderboard",
     "</help:1187383172992872509> ❓": "Displays this",
     "</invite:1187439448833675286> 📨": "Invite the bot to your server",
     "</about:1187439448833675288> ℹ️": "About the bot",
