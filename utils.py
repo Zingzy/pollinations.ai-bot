@@ -5,6 +5,7 @@ import io
 from urllib.parse import quote
 from pymongo import MongoClient
 import sys
+import itertools
 
 client = MongoClient(MONGODB_URI)
 
@@ -17,6 +18,20 @@ except Exception as e:
 db = client["pollinations"]
 prompts = db["prompts"]
 users = db["users"]
+multi_prompts = db["multi_prompts"]
+
+NUMBER_EMOJIES = {
+    1:"🥇",
+    2:"🥈",
+    3:"🥉",
+    4:"4️⃣",
+    5:"5️⃣",
+    6:"6️⃣",
+    7:"7️⃣",
+    8:"8️⃣",
+    9:"9️⃣",
+    10:"1️⃣0️⃣"
+}
 
 
 def get_prompt_data(message_id: int):
@@ -44,6 +59,35 @@ def update_prompt_data(message_id: int, data: dict):
 def delete_prompt_data(message_id: int):
     try:
         prompts.delete_one({"_id": message_id})
+    except Exception as e:
+        print(e)
+
+
+def get_multi_imagined_prompt_data(message_id: int):
+    try:
+        return multi_prompts.find_one({"_id": message_id})
+    except Exception as e:
+        print(e)
+        return None
+
+
+def save_multi_imagined_prompt_data(message_id: int, data: dict):
+    try:
+        multi_prompts.insert_one(data)
+    except Exception as e:
+        print(e)
+
+
+def update_multi_imagined_prompt_data(message_id: int, data: dict):
+    try:
+        multi_prompts.update_one({"_id": message_id}, {"$set": data})
+    except Exception as e:
+        print(e)
+
+
+def delete_multi_imagined_prompt_data(message_id: int):
+    try:
+        multi_prompts.delete_one({"_id": message_id})
     except Exception as e:
         print(e)
 
@@ -78,6 +122,21 @@ def update_user_data(user_id: int, data: dict):
         print(e)
 
 
+def generate_global_leaderboard():
+    try:
+        documents = users.find()
+
+        data = {doc["_id"]: len(doc["prompts"]) for doc in documents}
+
+        sorted_data = dict(sorted(data.items(), key=lambda item: item[1], reverse=True))
+
+        top_10_users = dict(itertools.islice(sorted_data.items(), 10))
+        return top_10_users
+
+    except Exception as e:
+        print(e)
+        return None
+
 async def generate_image(
     prompt: str,
     width: int = 500,
@@ -87,6 +146,7 @@ async def generate_image(
     cached: bool = False,
     nologo: bool = False,
     enhance: bool = True,
+    **kwargs
 ):
     model = model.lower()
 

@@ -252,10 +252,10 @@ class Imagine(commands.Cog):
         view = self.ImagineButtonView(link=dic["bookmark_url"])
 
         if private:
-            response = await interaction.followup.send(f"## {prompt} - {interaction.user.mention}", file=image_file, ephemeral=True)
+            response = await interaction.followup.send(f"## {prompt} - {interaction.user.mention}\n### Model - `{model}`", file=image_file, ephemeral=True)
             return
         else:
-            response = await interaction.channel.send(f"## {prompt} - {interaction.user.mention}", file=image_file, view=view)
+            response = await interaction.channel.send(f"## {prompt} - {interaction.user.mention}\n### Model - `{model}`", file=image_file, view=view)
 
         message_id = response.id
         dic["_id"] = message_id
