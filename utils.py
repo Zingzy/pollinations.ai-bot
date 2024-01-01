@@ -21,16 +21,16 @@ users = db["users"]
 multi_prompts = db["multi_prompts"]
 
 NUMBER_EMOJIES = {
-    1:"🥇",
-    2:"🥈",
-    3:"🥉",
-    4:"4️⃣",
-    5:"5️⃣",
-    6:"6️⃣",
-    7:"7️⃣",
-    8:"8️⃣",
-    9:"9️⃣",
-    10:"1️⃣0️⃣"
+    1: "🥇",
+    2: "🥈",
+    3: "🥉",
+    4: "4️⃣",
+    5: "5️⃣",
+    6: "6️⃣",
+    7: "7️⃣",
+    8: "8️⃣",
+    9: "9️⃣",
+    10: "1️⃣0️⃣",
 }
 
 
@@ -137,6 +137,7 @@ def generate_global_leaderboard():
         print(e)
         return None
 
+
 async def generate_image(
     prompt: str,
     width: int = 500,
@@ -146,7 +147,7 @@ async def generate_image(
     cached: bool = False,
     nologo: bool = False,
     enhance: bool = True,
-    **kwargs
+    **kwargs,
 ):
     model = model.lower()
 

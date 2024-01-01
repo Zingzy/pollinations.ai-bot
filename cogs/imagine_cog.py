@@ -213,10 +213,9 @@ class Imagine(commands.Cog):
         current: str,
     ) -> list[app_commands.Choice[str]]:
 
-        models = ['Deliberate', 'Playground', 'Pixart', 'Dreamshaper', 'Turbo', 'Formulaxl', "Dpo"]
         return [
             app_commands.Choice(name=choice, value=choice)
-            for choice in models if current.lower() in choice.lower()
+            for choice in MODELS if current.lower() in choice.lower()
         ]
 
 
