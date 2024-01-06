@@ -7,14 +7,10 @@ TOKEN = os.environ["TOKEN"]
 MONGODB_URI = os.environ["MONGODB_URI"]
 APP_URI = os.environ["APP_URI"]
 MODELS = [
-    "Deliberate",
-    "Playground",
-    "Pixart",
-    "Dreamshaper",
-    "Turbo",
-    "Formulaxl",
-    "Dpo",
-    "Realvis",
+    "swizz8",
+    "dreamshaper",
+    "deliberate",
+    "juggernaut",
 ]
 
 with open("nsfw.txt", "r") as r:

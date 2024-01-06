@@ -89,33 +89,33 @@ class Multi_imagine(commands.Cog):
 
             await Multi_imagine.regenerate(interaction, button, data, 3)
 
-        @discord.ui.button(label="V5", style=discord.ButtonStyle.secondary, custom_id="v5")
-        async def regerate_5(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 5", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
-            data = get_multi_imagined_prompt_data(interaction.message.id)
+        # @discord.ui.button(label="V5", style=discord.ButtonStyle.secondary, custom_id="v5")
+        # async def regerate_5(self, interaction: discord.Interaction, button: discord.ui.Button):
+        #     await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 5", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
+        #     data = get_multi_imagined_prompt_data(interaction.message.id)
 
-            await Multi_imagine.regenerate(interaction, button, data, 4)
+        #     await Multi_imagine.regenerate(interaction, button, data, 4)
 
-        @discord.ui.button(label="V6", style=discord.ButtonStyle.secondary, custom_id="v6")
-        async def regerate_6(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 6", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
-            data = get_multi_imagined_prompt_data(interaction.message.id)
+        # @discord.ui.button(label="V6", style=discord.ButtonStyle.secondary, custom_id="v6")
+        # async def regerate_6(self, interaction: discord.Interaction, button: discord.ui.Button):
+        #     await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 6", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
+        #     data = get_multi_imagined_prompt_data(interaction.message.id)
 
-            await Multi_imagine.regenerate(interaction, button, data, 5)
+        #     await Multi_imagine.regenerate(interaction, button, data, 5)
 
-        @discord.ui.button(label="V7", style=discord.ButtonStyle.secondary, custom_id="v7")
-        async def regerate_7(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 7", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
-            data = get_multi_imagined_prompt_data(interaction.message.id)
+        # @discord.ui.button(label="V7", style=discord.ButtonStyle.secondary, custom_id="v7")
+        # async def regerate_7(self, interaction: discord.Interaction, button: discord.ui.Button):
+        #     await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 7", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
+        #     data = get_multi_imagined_prompt_data(interaction.message.id)
 
-            await Multi_imagine.regenerate(interaction, button, data, 6)
+        #     await Multi_imagine.regenerate(interaction, button, data, 6)
 
-        @discord.ui.button(label="V8", style=discord.ButtonStyle.secondary, custom_id="v8")
-        async def regerate_8(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 8", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
-            data = get_multi_imagined_prompt_data(interaction.message.id)
+        # @discord.ui.button(label="V8", style=discord.ButtonStyle.secondary, custom_id="v8")
+        # async def regerate_8(self, interaction: discord.Interaction, button: discord.ui.Button):
+        #     await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 8", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
+        #     data = get_multi_imagined_prompt_data(interaction.message.id)
 
-            await Multi_imagine.regenerate(interaction, button, data, 7)
+        #     await Multi_imagine.regenerate(interaction, button, data, 7)
 
 
         @discord.ui.button(style=discord.ButtonStyle.red, custom_id="multiimagine_delete", emoji="<:delete:1187102382312652800>")
