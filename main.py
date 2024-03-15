@@ -48,8 +48,12 @@ commands_ = {
 
 class pollinationsBot(commands.Bot):
     def __init__(self):
+        intents = discord.Intents.default()
+        intents.messages = True
+        intents.message_content = True
+
         super().__init__(
-            command_prefix="!", intents=discord.Intents.all(), help_command=None
+            command_prefix="!", intents=intents, help_command=None
         )
         self.synced = False
 
@@ -68,7 +72,7 @@ class pollinationsBot(commands.Bot):
         await load()
 
         global start_time
-        start_time = datetime.datetime.utcnow()
+        start_time = datetime.datetime.now(datetime.UTC)
 
         await self.wait_until_ready()
         if not self.synced:
@@ -155,7 +159,7 @@ async def ping(ctx):
             )
 
         global start_time
-        current_time = datetime.datetime.utcnow()
+        current_time = datetime.datetime.now(datetime.UTC)
         delta = current_time - start_time
 
         hours, remainder = divmod(int(delta.total_seconds()), 3600)
@@ -187,7 +191,6 @@ async def help(ctx):
 
     embed = discord.Embed(
         title="Pollinations.ai Bot Commands",
-        url=APP_URI,
         description="Here is the list of the available commands:",
         color=discord.Color.og_blurple(),
     )
@@ -271,5 +274,5 @@ async def about(ctx):
 
 
 if __name__ == "__main__":
-    keep_alive()
+    # keep_alive()  # used for keeping the bot alive if hosten on a cloud platform
     bot.run(token=TOKEN)

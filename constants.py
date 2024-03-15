@@ -1,11 +1,10 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 TOKEN = os.environ["TOKEN"]
 MONGODB_URI = os.environ["MONGODB_URI"]
-APP_URI = os.environ["APP_URI"]
 MODELS = [
     "swizz8",
     "dreamshaper",

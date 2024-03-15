@@ -30,7 +30,7 @@ class leaderboard(commands.Cog):
         except Exception as e:
             top_user_avatar = top_user.default_avatar.url
 
-        embed = discord.Embed(title="Top 10 prompters", color=discord.Color.gold(), description="This Shows the top 10 bot users across all of the servers the bot is in.", timestamp=datetime.datetime.utcnow())
+        embed = discord.Embed(title="Top 10 prompters", color=discord.Color.gold(), description="This Shows the top 10 bot users across all of the servers the bot is in.", timestamp=datetime.datetime.now(datetime.UTC))
         embed.set_thumbnail(url=top_user_avatar)
 
         embed.add_field(name=f"{NUMBER_EMOJIES[1]}  {top_user.name} - {leaderboard[top_user_id]} points", value="** **")
