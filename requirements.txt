@@ -1,0 +1,10 @@
+aiohttp
+asgiref
+black
+discord
+discord.py
+Flask
+pymongo
+python-dotenv
+requests
+urllib3

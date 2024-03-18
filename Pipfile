@@ -4,16 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-aiohttp = "*"
-asgiref = "*"
-black = "*"
-discord = "*"
-"discord.py" = "*"
-flask = "*"
-pymongo = "*"
-python-dotenv = "*"
-requests = "*"
-urllib3 = "*"
 
 [dev-packages]
 
