@@ -224,7 +224,7 @@ class Imagine(commands.Cog):
     @app_commands.guild_only()
     @app_commands.checks.cooldown(1, 15)
     @app_commands.describe(prompt="Imagine a prompt", height="Height of the image", width="Width of the image", negative="The things not to include in the image", cached="Removes the image seed", nologo="Remove the logo", enhance="Disables Prompt enhancing if set to False", private="Only you can see the generated Image if set to True")
-    async def imagine_command(self, interaction, prompt:str, model: str = "Swizz8", width:int = 1000, height:int = 1000, negative:str|None = None, cached:bool = False, nologo:bool = False, enhance:bool = True, private:bool = False):
+    async def imagine_command(self, interaction, prompt:str, model: str = "Swizz8", width:int = 1000, height:int = 1000, negative:Optional[str] = None, cached:bool = False, nologo:bool = False, enhance:bool = True, private:bool = False):
         await interaction.response.send_message(embed=discord.Embed(title="Generating Image", description="Please wait while we generate your image", color=discord.Color.blurple()), ephemeral=True)
 
         if len(prompt) > 1500:

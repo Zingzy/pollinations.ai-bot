@@ -6,6 +6,7 @@ from urllib.parse import quote
 from pymongo import MongoClient
 import sys
 import itertools
+from typing import Optional, Any
 
 client = MongoClient(MONGODB_URI)
 
@@ -143,7 +144,7 @@ async def generate_image(
     width: int = 500,
     height: int = 500,
     model: str = "turbo",
-    negative: str | None = None,
+    negative: Optional[str] = None,
     cached: bool = False,
     nologo: bool = False,
     enhance: bool = True,
