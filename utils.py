@@ -143,7 +143,7 @@ async def generate_image(
     width: int = 500,
     height: int = 500,
     model: str = "turbo",
-    negative: str|None = None,
+    negative: str | None = None,
     cached: bool = False,
     nologo: bool = False,
     enhance: bool = True,

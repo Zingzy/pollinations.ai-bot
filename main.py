@@ -18,7 +18,7 @@ start_time = None
 latencies = []
 
 commands_ = {
-    "</imagine:1123582901544558612> 🎨": """Generates AI Images based on your prompts
+    "</pollinate:1123582901544558612> 🎨": """Generates AI Images based on your prompts
 - **prompt** 🗣️ : Your prompt for the Image to be generated
 - **model** 🤖 : The model to be used for generating the Image
 - **width** ↔️ : The width of your prompted Image
@@ -52,9 +52,7 @@ class pollinationsBot(commands.Bot):
         intents.messages = True
         intents.message_content = True
 
-        super().__init__(
-            command_prefix="!", intents=intents, help_command=None
-        )
+        super().__init__(command_prefix="!", intents=intents, help_command=None)
         self.synced = False
 
     @tasks.loop(minutes=5)
