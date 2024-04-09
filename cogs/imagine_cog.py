@@ -232,6 +232,11 @@ class Imagine(commands.Cog):
             await interaction.channel.send(embed=discord.Embed(title="Error", description="Width and Height must be greater than 16", color=discord.Color.red()))
             return
 
+        try:
+            model = model.value
+        except:
+            pass
+
         start = datetime.datetime.now()
 
         try:
