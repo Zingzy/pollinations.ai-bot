@@ -166,6 +166,7 @@ async def generate_image(
     url += f"&negative={negative}" if negative else ""
     url += f"&nologo={nologo}" if nologo else ""
     url += f"&enhance={enhance}" if enhance == False else ""
+    url += "&referer=discordbot"
 
     dic = {
         "prompt": prompt,
