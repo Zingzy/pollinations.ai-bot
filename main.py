@@ -51,7 +51,6 @@ class pollinationsBot(commands.Bot):
         intents = discord.Intents.default()
         intents.messages = True
         intents.message_content = True
-        intents.members = True
 
         super().__init__(command_prefix="!", intents=intents, help_command=None)
         self.synced = False
