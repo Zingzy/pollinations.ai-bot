@@ -108,40 +108,6 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-
-@bot.event
-async def on_member_join(member):
-    pollination_guild_id = 885844321461485618
-
-    if member.guild.id != pollination_guild_id:
-        return
-
-    channel = member.guild.system_channel
-    if channel is not None:
-        embed = discord.Embed(
-            title=f"Welcome {member.name} to pollinations!",
-            description=f"Hello {member.mention}, welcome to pollinations!",
-            color=discord.Color.from_rgb(239, 98, 138),
-        )
-
-        try:
-            embed.set_thumbnail(url=member.avatar.url)
-        except:
-            embed.set_thumbnail(url=member.default_avatar.url)
-
-        embed.add_field(name="", value="We are excited to see you!", inline=False)
-        embed.add_field(name="", value="When you are ready, check out the channels at the links below:", inline=False)
-
-        view = discord.ui.View()
-        view.add_item(discord.ui.Button(label="💬 General Chat", url="https://discord.com/channels/885844321461485618/889573359111774329"))
-        view.add_item(discord.ui.Button(label="🤖 Pollinations.ai", url="https://discord.com/channels/885844321461485618/1123617013433110578"))
-
-        try:
-            await channel.send(embed=embed, view=view)
-        except Exception as e:
-            print(e, file=sys.stdout)
-
-
 @bot.command()
 @commands.is_owner()
 async def sync(ctx):
