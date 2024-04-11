@@ -120,9 +120,26 @@ class Multi_imagine(commands.Cog):
 
         @discord.ui.button(style=discord.ButtonStyle.red, custom_id="multiimagine_delete", emoji="<:delete:1187102382312652800>")
         async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
-            delete_multi_imagined_prompt_data(interaction.message.id)
+            try:
+                data = get_multi_imagined_prompt_data(interaction.message.id)
+                author_id = data["author"]
 
-            await interaction.message.delete()
+                try:
+                    author_id = int(author_id)
+                except:
+                    pass
+
+                if interaction.user.id != author_id:
+                    await interaction.response.send_message(embed=discord.Embed(title="Error", description="You can only delete your own images", color=discord.Color.red()), ephemeral=True)
+                    return
+
+                delete_multi_imagined_prompt_data(interaction.message.id)
+                await interaction.message.delete()
+                return
+
+            except Exception as e:
+                print(e)
+                await interaction.response.send_message(embed=discord.Embed(title="Error Deleting the Image", description=f"{e}", color=discord.Color.red()), ephemeral=True)
 
     @app_commands.command(name="multi-imagine", description="Imagine multiple prompts")
     @app_commands.checks.cooldown(1, 30)
