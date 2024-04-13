@@ -11,7 +11,3 @@ MODELS = [
     "deliberate",
     "juggernaut",
 ]
-
-with open("nsfw.txt", "r") as r:
-    nsfw = r.read().split("\n")
-    NSFW_WORDS = [i.strip() for i in nsfw if i.strip() != ""]
