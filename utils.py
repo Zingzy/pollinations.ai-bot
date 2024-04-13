@@ -144,26 +144,30 @@ def generate_global_leaderboard():
 def read_json_from_exif(file_path):
     # Open the image file
     with Image.open(file_path) as img:
-
         # Extract EXIF data
         exif_data = img._getexif()
 
         # Find the 'UserComment' tag key
-        user_comment_key = next(key for key, value in TAGS.items() if value == 'UserComment')
+        user_comment_key = next(
+            key for key, value in TAGS.items() if value == "UserComment"
+        )
 
         # Extract the UserComment
         user_comment = exif_data.get(user_comment_key)
 
         if user_comment:
             try:
-                user_comment_decoded = user_comment.decode('ascii')
-                user_comment_decoded = user_comment_decoded[user_comment_decoded.find("{"):]
+                user_comment_decoded = user_comment.decode("ascii")
+                user_comment_decoded = user_comment_decoded[
+                    user_comment_decoded.find("{") :
+                ]
                 json_data = json.loads(user_comment_decoded)
                 return json_data
             except Exception as e:
                 raise e
         else:
             return "No UserComment found in EXIF data."
+
 
 async def generate_image(
     prompt: str,
@@ -223,5 +227,5 @@ async def generate_image(
 
     json_data = read_json_from_exif(image_file2)
     is_nsfw = json_data["0"]["has_nsfw_concept"]
-    
+
     return (dic, image_file, is_nsfw)

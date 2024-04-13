@@ -6,6 +6,7 @@ from discord.ext import commands
 from utils import *
 from constants import *
 
+
 class Multi_imagine(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -14,7 +15,12 @@ class Multi_imagine(commands.Cog):
         await self.bot.wait_until_ready()
         self.bot.add_view(self.multiImagineButtonView())
 
-    async def regenerate(interaction: discord.Interaction, button: discord.ui.Button, data: dict, model_no: int):
+    async def regenerate(
+        interaction: discord.Interaction,
+        button: discord.ui.Button,
+        data: dict,
+        model_no: int,
+    ):
         data["model"] = MODELS[model_no]
 
         start = datetime.datetime.now()
@@ -61,30 +67,74 @@ class Multi_imagine(commands.Cog):
         def __init__(self):
             super().__init__(timeout=None)
 
-        @discord.ui.button(label="V1", style=discord.ButtonStyle.secondary, custom_id="v1")
-        async def regerate_1(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 1", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
+        @discord.ui.button(
+            label="V1", style=discord.ButtonStyle.secondary, custom_id="v1"
+        )
+        async def regerate_1(
+            self, interaction: discord.Interaction, button: discord.ui.Button
+        ):
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Regenerating Image with model 1",
+                    description="Please wait while we regenerate your image",
+                    color=discord.Color.blurple(),
+                ),
+                ephemeral=True,
+            )
             data = get_multi_imagined_prompt_data(interaction.message.id)
 
             await Multi_imagine.regenerate(interaction, button, data, 0)
 
-        @discord.ui.button(label="V2", style=discord.ButtonStyle.secondary, custom_id="v2")
-        async def regerate_2(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 2", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
+        @discord.ui.button(
+            label="V2", style=discord.ButtonStyle.secondary, custom_id="v2"
+        )
+        async def regerate_2(
+            self, interaction: discord.Interaction, button: discord.ui.Button
+        ):
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Regenerating Image with model 2",
+                    description="Please wait while we regenerate your image",
+                    color=discord.Color.blurple(),
+                ),
+                ephemeral=True,
+            )
             data = get_multi_imagined_prompt_data(interaction.message.id)
 
             await Multi_imagine.regenerate(interaction, button, data, 1)
 
-        @discord.ui.button(label="V3", style=discord.ButtonStyle.secondary, custom_id="v3")
-        async def regerate_3(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 3", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
+        @discord.ui.button(
+            label="V3", style=discord.ButtonStyle.secondary, custom_id="v3"
+        )
+        async def regerate_3(
+            self, interaction: discord.Interaction, button: discord.ui.Button
+        ):
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Regenerating Image with model 3",
+                    description="Please wait while we regenerate your image",
+                    color=discord.Color.blurple(),
+                ),
+                ephemeral=True,
+            )
             data = get_multi_imagined_prompt_data(interaction.message.id)
 
             await Multi_imagine.regenerate(interaction, button, data, 2)
 
-        @discord.ui.button(label="V4", style=discord.ButtonStyle.secondary, custom_id="v4")
-        async def regerate_4(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_message(embed=discord.Embed(title="Regenerating Image with model 4", description="Please wait while we regenerate your image", color=discord.Color.blurple()), ephemeral=True)
+        @discord.ui.button(
+            label="V4", style=discord.ButtonStyle.secondary, custom_id="v4"
+        )
+        async def regerate_4(
+            self, interaction: discord.Interaction, button: discord.ui.Button
+        ):
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Regenerating Image with model 4",
+                    description="Please wait while we regenerate your image",
+                    color=discord.Color.blurple(),
+                ),
+                ephemeral=True,
+            )
             data = get_multi_imagined_prompt_data(interaction.message.id)
 
             await Multi_imagine.regenerate(interaction, button, data, 3)
@@ -117,9 +167,14 @@ class Multi_imagine(commands.Cog):
 
         #     await Multi_imagine.regenerate(interaction, button, data, 7)
 
-
-        @discord.ui.button(style=discord.ButtonStyle.red, custom_id="multiimagine_delete", emoji="<:delete:1187102382312652800>")
-        async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
+        @discord.ui.button(
+            style=discord.ButtonStyle.red,
+            custom_id="multiimagine_delete",
+            emoji="<:delete:1187102382312652800>",
+        )
+        async def delete(
+            self, interaction: discord.Interaction, button: discord.ui.Button
+        ):
             try:
                 data = get_multi_imagined_prompt_data(interaction.message.id)
                 author_id = data["author"]
@@ -130,7 +185,14 @@ class Multi_imagine(commands.Cog):
                     pass
 
                 if interaction.user.id != author_id:
-                    await interaction.response.send_message(embed=discord.Embed(title="Error", description="You can only delete your own images", color=discord.Color.red()), ephemeral=True)
+                    await interaction.response.send_message(
+                        embed=discord.Embed(
+                            title="Error",
+                            description="You can only delete your own images",
+                            color=discord.Color.red(),
+                        ),
+                        ephemeral=True,
+                    )
                     return
 
                 delete_multi_imagined_prompt_data(interaction.message.id)
@@ -139,22 +201,67 @@ class Multi_imagine(commands.Cog):
 
             except Exception as e:
                 print(e)
-                await interaction.response.send_message(embed=discord.Embed(title="Error Deleting the Image", description=f"{e}", color=discord.Color.red()), ephemeral=True)
+                await interaction.response.send_message(
+                    embed=discord.Embed(
+                        title="Error Deleting the Image",
+                        description=f"{e}",
+                        color=discord.Color.red(),
+                    ),
+                    ephemeral=True,
+                )
 
     @app_commands.command(name="multi-imagine", description="Imagine multiple prompts")
     @app_commands.checks.cooldown(1, 30)
     @app_commands.guild_only()
-    @app_commands.describe(prompt="Imagine a prompt", height="Height of the image", width="Width of the image", negative="The things not to include in the image", cached="Removes the image seed", nologo="Remove the logo", enhance="Disables Prompt enhancing if set to False", private="Only you can see the generated Image if set to True")
-    async def multiimagine_command(self, interaction, prompt:str, width:int = 1000, height:int = 1000, negative:str|None = None, cached:bool = False, nologo:bool = False, enhance:bool = True, private:bool = False):
-
-        await interaction.response.send_message(embed=discord.Embed(title="Generating Image", description="Please wait while we generate your image", color=discord.Color.blurple()), ephemeral=True)
+    @app_commands.describe(
+        prompt="Imagine a prompt",
+        height="Height of the image",
+        width="Width of the image",
+        negative="The things not to include in the image",
+        cached="Removes the image seed",
+        nologo="Remove the logo",
+        enhance="Disables Prompt enhancing if set to False",
+        private="Only you can see the generated Image if set to True",
+    )
+    async def multiimagine_command(
+        self,
+        interaction,
+        prompt: str,
+        width: int = 1000,
+        height: int = 1000,
+        negative: str | None = None,
+        cached: bool = False,
+        nologo: bool = False,
+        enhance: bool = True,
+        private: bool = False,
+    ):
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Generating Image",
+                description="Please wait while we generate your image",
+                color=discord.Color.blurple(),
+            ),
+            ephemeral=True,
+        )
 
         if len(prompt) > 1500:
-            await interaction.channel.send(embed=discord.Embed(title="Error", description="Prompt must be less than 1500 characters", color=discord.Color.red()))
+            await interaction.channel.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="Prompt must be less than 1500 characters",
+                    color=discord.Color.red(),
+                )
+            )
             return
 
         if width < 16 or height < 16:
-            await interaction.channel.send(embed=discord.Embed(title="Error", description="Width and Height must be greater than 16", color=discord.Color.red()))
+            await interaction.channel.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="Width and Height must be greater than 16",
+                    color=discord.Color.red(),
+                )
+            )
             return
 
         images = []
@@ -167,12 +274,17 @@ class Multi_imagine(commands.Cog):
         for i in MODELS:
             try:
                 time = datetime.datetime.now()
-                dic, image, is_nsfw = await generate_image(prompt, width, height, i, negative, cached, nologo, enhance, private)
+                dic, image, is_nsfw = await generate_image(
+                    prompt, width, height, i, negative, cached, nologo, enhance, private
+                )
 
                 image_urls[i] = dic["bookmark_url"]
 
                 time_taken = datetime.datetime.now() - time
-                await interaction.followup.send(f"Generated `{i} model` Image in `{round(time_taken.total_seconds(), 2)}` seconds ✅", ephemeral=True)
+                await interaction.followup.send(
+                    f"Generated `{i} model` Image in `{round(time_taken.total_seconds(), 2)}` seconds ✅",
+                    ephemeral=True,
+                )
 
                 description += f"**Image {counter} model** :  `{i}`\n"
                 counter += 1
@@ -180,12 +292,21 @@ class Multi_imagine(commands.Cog):
                 images.append(image)
             except Exception as e:
                 print(e)
-                await interaction.followup.send(embed=discord.Embed(title=f"Error generating image of `{i}` model", description=f"{e}", color=discord.Color.red()), ephemeral=True)
+                await interaction.followup.send(
+                    embed=discord.Embed(
+                        title=f"Error generating image of `{i}` model",
+                        description=f"{e}",
+                        color=discord.Color.red(),
+                    ),
+                    ephemeral=True,
+                )
 
         files = []
 
         for idx, img in enumerate(images):
-            file_name = f"{prompt}_{idx}.png" if not is_nsfw else f"SPOILER_{prompt}_{idx}.png"
+            file_name = (
+                f"{prompt}_{idx}.png" if not is_nsfw else f"SPOILER_{prompt}_{idx}.png"
+            )
             files.append(discord.File(img, file_name))
 
         multi_imagine_view = self.multiImagineButtonView()
@@ -196,11 +317,22 @@ class Multi_imagine(commands.Cog):
 
         if not len(files) == 0:
             if private:
-                response = await interaction.followup.send(context, files=files, ephemeral= True)
+                response = await interaction.followup.send(
+                    context, files=files, ephemeral=True
+                )
             else:
-                response = await interaction.channel.send(context, files=files, view=multi_imagine_view)
+                response = await interaction.channel.send(
+                    context, files=files, view=multi_imagine_view
+                )
         else:
-            await interaction.followup.send(embed=discord.Embed(title="Error", description="No images were generated", color=discord.Color.red()), ephemeral=True)
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description="No images were generated",
+                    color=discord.Color.red(),
+                ),
+                ephemeral=True,
+            )
             return
 
         message_id = response.id
@@ -241,6 +373,7 @@ class Multi_imagine(commands.Cog):
             )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(Multi_imagine(bot))
