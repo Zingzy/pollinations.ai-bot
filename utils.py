@@ -6,6 +6,9 @@ from urllib.parse import quote
 from pymongo import MongoClient
 import sys
 import itertools
+import json
+from PIL import Image
+from PIL.ExifTags import TAGS
 
 client = MongoClient(MONGODB_URI)
 
@@ -138,6 +141,30 @@ def generate_global_leaderboard():
         return None
 
 
+def read_json_from_exif(file_path):
+    # Open the image file
+    with Image.open(file_path) as img:
+
+        # Extract EXIF data
+        exif_data = img._getexif()
+
+        # Find the 'UserComment' tag key
+        user_comment_key = next(key for key, value in TAGS.items() if value == 'UserComment')
+
+        # Extract the UserComment
+        user_comment = exif_data.get(user_comment_key)
+
+        if user_comment:
+            try:
+                user_comment_decoded = user_comment.decode('ascii')
+                user_comment_decoded = user_comment_decoded[user_comment_decoded.find("{"):]
+                json_data = json.loads(user_comment_decoded)
+                return json_data
+            except Exception as e:
+                raise e
+        else:
+            return "No UserComment found in EXIF data."
+
 async def generate_image(
     prompt: str,
     width: int = 500,
@@ -147,6 +174,7 @@ async def generate_image(
     cached: bool = False,
     nologo: bool = False,
     enhance: bool = True,
+    private: bool = False,
     **kwargs,
 ):
     model = model.lower()
@@ -166,6 +194,7 @@ async def generate_image(
     url += f"&negative={negative}" if negative else ""
     url += f"&nologo={nologo}" if nologo else ""
     url += f"&enhance={enhance}" if enhance == False else ""
+    url += f"&nofeed={private}" if private else ""
     url += "&referer=discordbot"
 
     dic = {
@@ -186,4 +215,13 @@ async def generate_image(
         async with session.get(url) as response:
             response.raise_for_status()  # Raise an exception for non-2xx status codes
             image_data = await response.read()
-            return (dic, io.BytesIO(image_data))
+            image_file = io.BytesIO(image_data)
+            image_file.seek(0)
+
+            image_file2 = io.BytesIO(image_data)
+            image_file2.seek(0)
+
+    json_data = read_json_from_exif(image_file2)
+    is_nsfw = json_data["0"]["has_nsfw_concept"]
+    
+    return (dic, image_file, is_nsfw)

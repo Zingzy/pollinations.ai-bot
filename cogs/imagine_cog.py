@@ -37,13 +37,16 @@ class ImagineButtonView(discord.ui.View):
         enhance = message_data["enhance"]
 
         try:
-            dic, image = await generate_image(prompt, width, height, model, negative, cached, nologo, enhance)
+            dic, image, is_nsfw = await generate_image(prompt, width, height, model, negative, cached, nologo, enhance)
         except Exception as e:
             print(e)
             await interaction.followup.send(embed=discord.Embed(title="Error", description=f"Error generating image : {e}", color=discord.Color.red()), ephemeral=True)
             return
 
         image_file = discord.File(image, filename="image.png")
+
+        if is_nsfw:
+            image_file.filename = f"SPOILER_{image_file.filename}"
 
         time_taken = datetime.datetime.now() - start
 
@@ -240,17 +243,17 @@ class Imagine(commands.Cog):
         start = datetime.datetime.now()
 
         try:
-            dic, image = await generate_image(prompt, width, height, model, negative, cached, nologo, enhance)
+            dic, image, is_nsfw = await generate_image(prompt, width, height, model, negative, cached, nologo, enhance, private)
         except Exception as e:
             print(e)
+            print("Error in Imagine Cog")
             await interaction.followup.send(embed=discord.Embed(title="Error", description=f"Error generating image : {e}", color=discord.Color.red()), ephemeral=True)
             return
 
         image_file = discord.File(image, filename="image.png")
 
-        for i in prompt.split(" "):
-            if i.lower() in NSFW_WORDS:
-                image_file.filename = f"SPOILER_{image_file.filename}"
+        if is_nsfw:
+            image_file.filename = f"SPOILER_{image_file.filename}"
 
         view = ImagineButtonView(link=dic["bookmark_url"])
 

@@ -19,10 +19,10 @@ class Multi_imagine(commands.Cog):
 
         start = datetime.datetime.now()
 
-        dic, img = await generate_image(**data)
+        dic, img, is_nsfw = await generate_image(**data)
 
         image_file = discord.File(img, "image.png")
-        if data["nsfw"]:
+        if is_nsfw:
             image_file.filename = f"SPOILER_{image_file.filename}"
 
         time_taken = datetime.datetime.now() - start
@@ -167,7 +167,7 @@ class Multi_imagine(commands.Cog):
         for i in MODELS:
             try:
                 time = datetime.datetime.now()
-                dic, image = await generate_image(prompt, width, height, i, negative, cached, nologo, enhance)
+                dic, image, is_nsfw = await generate_image(prompt, width, height, i, negative, cached, nologo, enhance, private)
 
                 image_urls[i] = dic["bookmark_url"]
 
@@ -183,11 +183,6 @@ class Multi_imagine(commands.Cog):
                 await interaction.followup.send(embed=discord.Embed(title=f"Error generating image of `{i}` model", description=f"{e}", color=discord.Color.red()), ephemeral=True)
 
         files = []
-
-        is_nsfw = False
-        for i in prompt.split(" "):
-            if i.lower() in NSFW_WORDS:
-                is_nsfw = True
 
         for idx, img in enumerate(images):
             file_name = f"{prompt}_{idx}.png" if not is_nsfw else f"SPOILER_{prompt}_{idx}.png"
