@@ -9,7 +9,7 @@ import time
 import sys
 from constants import *
 from api import *
-from utils import client, get_prompts_counts
+from utils import get_prompts_counts
 
 
 load_dotenv()
@@ -99,7 +99,7 @@ async def on_message(message):
     if bot.user in message.mentions:
         if message.type is not discord.MessageType.reply:
             embed = discord.Embed(
-                description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. Type `!help` or click </help:1187383172992872509> to get started.",
+                description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:1223762317359976519> or </multi-imagine:1187375074722975837> or type `!help` for more commands**.",
                 color=discord.Color.og_blurple(),
             )
 
