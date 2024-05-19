@@ -9,6 +9,7 @@ import itertools
 import json
 from PIL import Image
 from PIL.ExifTags import TAGS
+from bson.son import SON
 
 client = MongoClient(MONGODB_URI)
 
@@ -97,7 +98,7 @@ def delete_multi_imagined_prompt_data(message_id: int):
 
 def get_prompts_counts():
     try:
-        return prompts.count_documents({})
+        return prompts.count_documents({}) + multi_prompts.count_documents({})
     except Exception as e:
         print(e)
         return None
@@ -125,15 +126,18 @@ def update_user_data(user_id: int, data: dict):
         print(e)
 
 
+pipeline = [
+    {"$unwind": "$prompts"},
+    {"$group": {"_id": "$_id", "count": {"$sum": 1}}},
+    {"$sort": SON([("count", -1)])},
+    {"$limit": 10}
+]
+
 def generate_global_leaderboard():
     try:
-        documents = users.find()
+        top_10_users = list(users.aggregate(pipeline))
+        top_10_users = {doc["_id"]: doc["count"] for doc in top_10_users}
 
-        data = {doc["_id"]: len(doc["prompts"]) for doc in documents}
-
-        sorted_data = dict(sorted(data.items(), key=lambda item: item[1], reverse=True))
-
-        top_10_users = dict(itertools.islice(sorted_data.items(), 10))
         return top_10_users
 
     except Exception as e:
