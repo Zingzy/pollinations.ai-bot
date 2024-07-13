@@ -57,12 +57,11 @@ class pollinationsBot(commands.Bot):
 
     @tasks.loop(minutes=5)
     async def change_status(self):
-        count = get_prompts_counts()
 
         await bot.change_presence(
             activity=discord.CustomActivity(
                 name="Custom Status",
-                state=f"Generated {count} Images so far...",
+                state=f"/pollinate to generate ai images",
             )
         )
 
@@ -249,7 +248,7 @@ async def about(ctx):
     )
     embed.add_field(
         name="How do I use this bot? 🤔",
-        value="You can use this bot by typing `!help` or clicking </help:1187383172992872509> to get started.",
+        value="You can use this bot by typing `/help` or clicking </help:1187383172992872509> to get started.",
         inline=False,
     )
     embed.add_field(
@@ -263,10 +262,11 @@ async def about(ctx):
         inline=False,
     )
 
-    embed.set_footer(
-        text="Information requested by: {}".format(ctx.author.name),
-        icon_url=ctx.author.avatar.url,
-    )
+    embed.add_field(name="Total Images Generated", value=f"```{get_prompts_counts()}```", inline=True)
+    embed.add_field(name="Servers", value=f"```{len(bot.guilds)}```", inline=True)
+    embed.add_field(name="Users", value=f"```{len(bot.users)}```", inline=True)
+
+    embed.set_footer(text="Bot created by Zngzy", icon_url="https://i.ibb.co/6Pb7XG9/18622ff1cc55d7dca730d1ac246b6192.png")
 
     await ctx.send(embed=embed)
 
