@@ -20,13 +20,12 @@ latencies = []
 commands_ = {
     "</pollinate:1223762317359976519> 🎨": """Generates AI Images based on your prompts
 - **prompt** 🗣️ : Your prompt for the Image to be generated
-- **model** 🤖 : The model to be used for generating the Image
 - **width** ↔️ : The width of your prompted Image
 - **height** ↕️ : The height of your prompted Image
+- **enhance** 🖼️ : Specifies whether to enhance the image prompt or not
 - **cached** : specifies whether to return a cached image
 - **negative** ❎ : Specifies what not to be in the generated images
 - **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
-- **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
     "</multi-imagine:1187375074722975837> 🎨": """Generates AI Images using all available models
@@ -37,6 +36,13 @@ commands_ = {
 - **negative** ❎ : Specifies what not to be in the generated images
 - **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
 - **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
+- **private** 🔒 : when set to True the generated Image will only be visible to you
+""",
+    "</random:1187375074722975837> 🎨": """Generates Random AI Images
+- **width** ↔️ : The width of your prompted Image
+- **height** ↕️ : The height of your prompted Image
+- **negative** ❎ : Specifies what not to be in the generated images
+- **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
     "</leaderboard:1188098851807166506> 🏆": "Shows the Global Leaderboard",
@@ -57,11 +63,10 @@ class pollinationsBot(commands.Bot):
 
     @tasks.loop(minutes=5)
     async def change_status(self):
-
         await bot.change_presence(
             activity=discord.CustomActivity(
                 name="Custom Status",
-                state=f"/pollinate to generate ai images",
+                state=f"/pollinate to generate AI images",
             )
         )
 
@@ -262,11 +267,18 @@ async def about(ctx):
         inline=False,
     )
 
-    embed.add_field(name="Total Images Generated", value=f"```{get_prompts_counts()}```", inline=True)
+    embed.add_field(
+        name="Total Images Generated",
+        value=f"```{get_prompts_counts()}```",
+        inline=True,
+    )
     embed.add_field(name="Servers", value=f"```{len(bot.guilds)}```", inline=True)
     embed.add_field(name="Users", value=f"```{len(bot.users)}```", inline=True)
 
-    embed.set_footer(text="Bot created by Zngzy", icon_url="https://i.ibb.co/6Pb7XG9/18622ff1cc55d7dca730d1ac246b6192.png")
+    embed.set_footer(
+        text="Bot created by Zngzy",
+        icon_url="https://i.ibb.co/6Pb7XG9/18622ff1cc55d7dca730d1ac246b6192.png",
+    )
 
     await ctx.send(embed=embed)
 
