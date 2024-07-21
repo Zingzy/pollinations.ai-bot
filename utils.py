@@ -207,7 +207,10 @@ def extract_user_comment(image_bytes):
     user_comment = exif_data.get("Exif", {}).get(piexif.ExifIFD.UserComment, None)
 
     if user_comment:
-        return user_comment.decode("utf-8")
+        try:
+            return user_comment.decode("utf-8")
+        except UnicodeDecodeError:
+            return "No user comment found."
     else:
         return "No user comment found."
 
