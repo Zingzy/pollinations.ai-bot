@@ -28,7 +28,7 @@ commands_ = {
 - **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
-    "</multi-imagine:1187375074722975837> 🎨": """Generates AI Images using all available models
+    "</multi-pollinate:1187375074722975837> 🎨": """Generates AI Images using all available models
 - **prompt** 🗣️ : Your prompt for the Image to be generated
 - **width** ↔️ : The width of your prompted Image
 - **height** ↕️ : The height of your prompted Image

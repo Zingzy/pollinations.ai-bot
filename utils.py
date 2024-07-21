@@ -47,11 +47,14 @@ waiting_gifs = [
     "https://i.giphy.com/tXL4FHPSnVJ0A.gif",
 ]
 
+
 class PromptTooLongError(discord.app_commands.AppCommandError):
     pass
 
+
 class DimensionTooSmallError(discord.app_commands.AppCommandError):
     pass
+
 
 def get_prompt_data(message_id: int):
     try:
