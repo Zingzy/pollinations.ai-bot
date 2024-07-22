@@ -28,7 +28,7 @@ commands_ = {
 - **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
-    "</multi-pollinate:1187375074722975837> 🎨": """Generates AI Images using all available models
+    "</multi-pollinate:1264942861800050891> 🎨": """Generates AI Images using all available models
 - **prompt** 🗣️ : Your prompt for the Image to be generated
 - **width** ↔️ : The width of your prompted Image
 - **height** ↕️ : The height of your prompted Image
@@ -38,7 +38,7 @@ commands_ = {
 - **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
-    "</random:1187375074722975837> 🎨": """Generates Random AI Images
+    "</random:1264942861800050890> 🎨": """Generates Random AI Images
 - **width** ↔️ : The width of your prompted Image
 - **height** ↕️ : The height of your prompted Image
 - **negative** ❎ : Specifies what not to be in the generated images
@@ -103,7 +103,7 @@ async def on_message(message):
     if bot.user in message.mentions:
         if message.type is not discord.MessageType.reply:
             embed = discord.Embed(
-                description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:1223762317359976519> or </multi-imagine:1187375074722975837> or type `!help` for more commands**.",
+                description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:1223762317359976519> or </multi-imagine:1187375074722975837> or type `/help` for more commands**.",
                 color=discord.Color.og_blurple(),
             )
 
@@ -232,7 +232,7 @@ async def about(ctx):
     profilePicture = user.avatar.url
 
     embed = discord.Embed(
-        title="Pollinations.ai Bot",
+        title="About Pollinations.ai Bot 🙌",
         url="https://pollinations.ai/",
         description="I am the official Pollinations.ai Bot. I can generate AI Images from your prompts ✨.",
         color=discord.Color.og_blurple(),
@@ -273,7 +273,19 @@ async def about(ctx):
         inline=True,
     )
     embed.add_field(name="Servers", value=f"```{len(bot.guilds)}```", inline=True)
-    embed.add_field(name="Users", value=f"```{len(bot.users)}```", inline=True)
+
+    global start_time
+    current_time = datetime.datetime.now(datetime.UTC)
+    delta = current_time - start_time
+
+    hours, remainder = divmod(int(delta.total_seconds()), 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    embed.add_field(
+        name="Uptime",
+        value=f"```{hours} hours {minutes} minutes {seconds} seconds```",
+        inline=False,
+    )
 
     embed.set_footer(
         text="Bot created by Zngzy",
