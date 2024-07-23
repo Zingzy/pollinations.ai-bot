@@ -1,5 +1,5 @@
 <p align="center">
-  <image src='https://raw.githubusercontent.com/Zingzy/pollinations.ai-bot/main/previews/banner.png' width="550"/>
+  <image src='https://raw.githubusercontent.com/Zingzy/pollinations.ai-bot/main/previews/banner.png' width="800"/>
 </p>
 
 <h3 align="center">Pollinations.ai Discord Bot</h3>
