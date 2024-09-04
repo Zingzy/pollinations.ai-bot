@@ -163,6 +163,14 @@ def generate_global_leaderboard():
         print(e)
         return None
 
+def ordinal(n):
+    suffix = ["th", "st", "nd", "rd"] + ["th"] * 6
+    if 10 <= n % 100 <= 20:
+        suffix_choice = "th"
+    else:
+        suffix_choice = suffix[n % 10]
+    return f"{n}{suffix_choice}"
+
 
 async def generate_error_message(
     interaction: discord.Interaction,
@@ -206,14 +214,16 @@ async def generate_error_message(
 
 def extract_user_comment(image_bytes):
     image = Image.open(io.BytesIO(image_bytes))
-    exif_data = piexif.load(image.info["exif"])
-    user_comment = exif_data.get("Exif", {}).get(piexif.ExifIFD.UserComment, None)
+
+    try:
+        exif = image.info['exif'].decode('latin-1', errors='ignore')
+        user_comment = json.loads(exif[exif.find("{"):exif.rfind("}") + 1])
+    except Exception as e:
+        print(e)
+        return "No user comment found."
 
     if user_comment:
-        try:
-            return user_comment.decode("utf-8")
-        except UnicodeDecodeError:
-            return "No user comment found."
+        return user_comment
     else:
         return "No user comment found."
 
@@ -222,7 +232,7 @@ async def generate_image(
     prompt: str,
     width: int = 800,
     height: int = 800,
-    model: str = "flux",
+    model: str = f"{MODELS[0]}",
     negative: str | None = None,
     cached: bool = False,
     nologo: bool = False,
@@ -231,7 +241,7 @@ async def generate_image(
     **kwargs,
 ):
     print(
-        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, negative: {negative}, cached: {cached}, nologo: {nologo}, enhance: {enhance}",
+        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, negative: {negative}, cached: {cached}, nologo: {nologo}, enhance: {enhance}, model: {model}",
         file=sys.stderr,
     )
 
@@ -262,7 +272,7 @@ async def generate_image(
     dic["seed"] = seed if not cached else None
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
+        async with session.get(url, allow_redirects=True) as response:
             response.raise_for_status()  # Raise an exception for non-2xx status codes
             image_data = await response.read()
 
@@ -273,12 +283,10 @@ async def generate_image(
             image_file.seek(0)
 
             try:
-                user_comment = user_comment[user_comment.find("{") :]
-                user_comment = json.loads(user_comment)
                 dic["nsfw"] = user_comment["has_nsfw_concept"]
                 if enhance or len(prompt) < 80:
                     enhance_prompt = user_comment["prompt"]
-                    enhance_prompt = enhance_prompt[: enhance_prompt.rfind("\n")]
+                    enhance_prompt = enhance_prompt[: enhance_prompt.rfind("\n")].strip()
                     dic["enhanced_prompt"] = enhance_prompt
             except Exception as e:
                 print(e)
