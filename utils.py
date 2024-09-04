@@ -163,6 +163,7 @@ def generate_global_leaderboard():
         print(e)
         return None
 
+
 def ordinal(n):
     suffix = ["th", "st", "nd", "rd"] + ["th"] * 6
     if 10 <= n % 100 <= 20:
@@ -216,8 +217,8 @@ def extract_user_comment(image_bytes):
     image = Image.open(io.BytesIO(image_bytes))
 
     try:
-        exif = image.info['exif'].decode('latin-1', errors='ignore')
-        user_comment = json.loads(exif[exif.find("{"):exif.rfind("}") + 1])
+        exif = image.info["exif"].decode("latin-1", errors="ignore")
+        user_comment = json.loads(exif[exif.find("{") : exif.rfind("}") + 1])
     except Exception as e:
         print(e)
         return "No user comment found."
@@ -286,7 +287,9 @@ async def generate_image(
                 dic["nsfw"] = user_comment["has_nsfw_concept"]
                 if enhance or len(prompt) < 80:
                     enhance_prompt = user_comment["prompt"]
-                    enhance_prompt = enhance_prompt[: enhance_prompt.rfind("\n")].strip()
+                    enhance_prompt = enhance_prompt[
+                        : enhance_prompt.rfind("\n")
+                    ].strip()
                     dic["enhanced_prompt"] = enhance_prompt
             except Exception as e:
                 print(e)
