@@ -1,9 +1,8 @@
 import datetime
-from discord import app_commands, ui
+from discord import app_commands
 from discord.ext import commands
 import discord
-from utils import *
-from constants import *
+from utils import generate_global_leaderboard, NUMBER_EMOJIES
 
 
 class leaderboard(commands.Cog):
@@ -30,7 +29,7 @@ class leaderboard(commands.Cog):
 
         try:
             top_user_avatar = top_user.avatar.url
-        except Exception as e:
+        except Exception:
             top_user_avatar = top_user.default_avatar.url
 
         embed = discord.Embed(
@@ -59,7 +58,7 @@ class leaderboard(commands.Cog):
                 text=f"Requested by {interaction.user.name}",
                 icon_url=interaction.user.avatar.url,
             )
-        except Exception as e:
+        except Exception:
             embed.set_footer(
                 text=f"Requested by {interaction.user.name}",
                 icon_url=interaction.user.default_avatar.url,

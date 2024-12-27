@@ -1,10 +1,22 @@
 import datetime
 import discord
-from discord import app_commands, ui
+from discord import app_commands
 from discord.ext import commands
+import aiohttp
+import io
 
-from utils import *
-from constants import *
+from utils import (
+    generate_error_message,
+    generate_image,
+    DimensionTooSmallError,
+    extract_user_comment,
+    ordinal,
+    get_multi_imagined_prompt_data,
+    delete_multi_imagined_prompt_data,
+    PromptTooLongError,
+    save_multi_imagined_prompt_data,
+)
+from constants import MODELS
 
 
 class Multi_pollinate(commands.Cog):
@@ -16,8 +28,6 @@ class Multi_pollinate(commands.Cog):
         self.bot.add_view(self.multiImagineButtonView())
 
     async def get_info(interaction: discord.Interaction, index: int):
-
-
         data = get_multi_imagined_prompt_data(interaction.message.id)
         seed = data["urls"][index].split("?")[-1].split("&")[0]
 
@@ -25,13 +35,21 @@ class Multi_pollinate(commands.Cog):
         url += f"?{seed}"
         url += f"&width={data['width']}"
         url += f"&height={data['height']}"
-        url += f"&negative={data['negative']}" if 'negative' in data and data['negative'] else ''
-        url += f"&nologo=true"
-        url += f"&enhance={data['enhance']}" if 'enhance' in data and data['enhance'] else ''
+        url += (
+            f"&negative={data['negative']}"
+            if "negative" in data and data["negative"]
+            else ""
+        )
+        url += "&nologo=true"
+        url += (
+            f"&enhance={data['enhance']}"
+            if "enhance" in data and data["enhance"]
+            else ""
+        )
         url += f"&model={MODELS[index]}"
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(data['urls'][index]) as response:
+            async with session.get(data["urls"][index]) as response:
                 response.raise_for_status()
                 image_data = await response.read()
 
@@ -57,17 +75,21 @@ class Multi_pollinate(commands.Cog):
             pass
 
         embed = discord.Embed(
-                title=f"{ordinal(index+1)} Image",
-                description=f"Model: {MODELS[index]}",
-            )
+            title=f"{ordinal(index+1)} Image",
+            description=f"Model: {MODELS[index]}",
+        )
 
-        embed.set_image(url=f"attachment://image.png")
+        embed.set_image(url="attachment://image.png")
 
         if len(data["urls"][index]) < 512:
             embed.url = data["urls"][index]
 
         if "enhanced_prompt" in data:
-            embed.add_field(name="Enhanced Prompt", value=f"```{data['enhanced_prompt'][:1020]+"..." if len(data['enhanced_prompt']) > 1024 else data['enhanced_prompt']}```", inline=False)
+            embed.add_field(
+                name="Enhanced Prompt",
+                value=f"```{data['enhanced_prompt'][:1020]+"..." if len(data['enhanced_prompt']) > 1024 else data['enhanced_prompt']}```",
+                inline=False,
+            )
 
         return embed, image_file
 
@@ -84,7 +106,7 @@ class Multi_pollinate(commands.Cog):
                     discord.ui.Button(
                         label=f"U{i+1}",
                         style=discord.ButtonStyle.secondary,
-                        custom_id=f"U{i+1}"
+                        custom_id=f"U{i+1}",
                     )
                 )
             self.add_item(
@@ -97,7 +119,7 @@ class Multi_pollinate(commands.Cog):
             )
 
         async def interaction_check(self, interaction: discord.Interaction) -> bool:
-            custom_id = interaction.data['custom_id']
+            custom_id = interaction.data["custom_id"]
             if custom_id.startswith("U"):
                 index = int(custom_id[1]) - 1
                 await self.regenerate_image(interaction, index)
@@ -113,7 +135,9 @@ class Multi_pollinate(commands.Cog):
             embed, image = await Multi_pollinate.get_info(interaction, index)
             await interaction.followup.send(embed=embed, file=image)
 
-        async def disable_button(self, interaction: discord.Interaction, custom_id: str):
+        async def disable_button(
+            self, interaction: discord.Interaction, custom_id: str
+        ):
             for item in self.children:
                 if isinstance(item, discord.ui.Button) and item.custom_id == custom_id:
                     item.disabled = True
@@ -128,7 +152,7 @@ class Multi_pollinate(commands.Cog):
 
                 try:
                     author_id = int(author_id)
-                except:
+                except Exception:
                     pass
 
                 if interaction.user.id != author_id:
@@ -157,7 +181,9 @@ class Multi_pollinate(commands.Cog):
                     ephemeral=True,
                 )
 
-    @app_commands.command(name="multi-pollinate", description="Imagine multiple prompts")
+    @app_commands.command(
+        name="multi-pollinate", description="Imagine multiple prompts"
+    )
     @app_commands.checks.cooldown(1, 30)
     @app_commands.guild_only()
     @app_commands.describe(
@@ -182,7 +208,6 @@ class Multi_pollinate(commands.Cog):
         nologo: bool = False,
         private: bool = False,
     ):
-
         await interaction.response.send_message(
             embed=discord.Embed(
                 title="Generating Image",
@@ -213,7 +238,15 @@ class Multi_pollinate(commands.Cog):
                 model = MODELS[i]
 
                 dic, image = await generate_image(
-                    prompt, width, height, model, negative, cached, nologo, enhance, private
+                    prompt,
+                    width,
+                    height,
+                    model,
+                    negative,
+                    cached,
+                    nologo,
+                    enhance,
+                    private,
                 )
 
                 image_urls.append(dic["bookmark_url"])
@@ -226,13 +259,21 @@ class Multi_pollinate(commands.Cog):
                         ephemeral=True,
                     )
                 else:
-                    embed = discord.Embed(title="Generating Image", description=f"Generated **{ordinal(i+1)} Image** in `{round(time_taken.total_seconds(), 2)}` seconds ✅", color=discord.Color.blurple())
+                    embed = discord.Embed(
+                        title="Generating Image",
+                        description=f"Generated **{ordinal(i+1)} Image** in `{round(time_taken.total_seconds(), 2)}` seconds ✅",
+                        color=discord.Color.blurple(),
+                    )
                     await response.edit(embeds=[embed])
 
                 image_file = discord.File(image, f"image_{i}.png")
                 files.append(image_file)
 
-                embed = discord.Embed(timestamp=datetime.datetime.now(datetime.timezone.utc), description=f"", title="")
+                embed = discord.Embed(
+                    timestamp=datetime.datetime.now(datetime.timezone.utc),
+                    description="",
+                    title="",
+                )
                 embed.set_image(url=f"attachment://image_{i}.png")
                 embeds.append(embed)
 
@@ -249,11 +290,14 @@ class Multi_pollinate(commands.Cog):
                     )
                 else:
                     await response.edit(
-                        embeds=[discord.Embed(
-                            title=f"Error generating image of `{MODELS[i]}` model",
-                            description=f"{e}",
-                            color=discord.Color.red(),
-                        )])
+                        embeds=[
+                            discord.Embed(
+                                title=f"Error generating image of `{MODELS[i]}` model",
+                                description=f"{e}",
+                                color=discord.Color.red(),
+                            )
+                        ]
+                    )
 
         multi_imagine_view = self.multiImagineButtonView(image_count=len(embeds))
 
@@ -263,10 +307,13 @@ class Multi_pollinate(commands.Cog):
             embeds[i].url = image_urls[0]
 
         embeds[0].add_field(name="Prompt", value=f"```{prompt}```", inline=False)
-        embeds[0].add_field(name="Total Time Taken", value=f"```{round(time_taken.total_seconds(), 2)} s```", inline=True)
+        embeds[0].add_field(
+            name="Total Time Taken",
+            value=f"```{round(time_taken.total_seconds(), 2)} s```",
+            inline=True,
+        )
 
         embeds[0].set_footer(text=f"Generated by {interaction.user}")
-
 
         if not len(files) == 0:
             if private:
@@ -274,7 +321,9 @@ class Multi_pollinate(commands.Cog):
                     embeds=embeds, files=files, ephemeral=True
                 )
             else:
-                await response.edit(embeds=embeds, view=multi_imagine_view, attachments=files)
+                await response.edit(
+                    embeds=embeds, view=multi_imagine_view, attachments=files
+                )
         else:
             if private:
                 await interaction.followup.send(
@@ -287,11 +336,14 @@ class Multi_pollinate(commands.Cog):
                 )
             else:
                 await response.edit(
-                    embeds=[discord.Embed(
-                        title="Error",
-                        description="No images were generated",
-                        color=discord.Color.red(),
-                    )])
+                    embeds=[
+                        discord.Embed(
+                            title="Error",
+                            description="No images were generated",
+                            color=discord.Color.red(),
+                        )
+                    ]
+                )
             return
 
         message_id = response.id
@@ -306,7 +358,7 @@ class Multi_pollinate(commands.Cog):
         del dic["seed"]
         try:
             del dic["enhanced_prompt"]
-        except:
+        except Exception:
             pass
 
         save_multi_imagined_prompt_data(message_id, dic)
@@ -330,10 +382,10 @@ class Multi_pollinate(commands.Cog):
             )
             try:
                 await interaction.followup.send(embed=embed, ephemeral=True)
-            except:
+            except Exception:
                 try:
                     await interaction.edit_original_response(embed=embed)
-                except:
+                except Exception:
                     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 

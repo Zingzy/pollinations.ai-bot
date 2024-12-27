@@ -3,14 +3,12 @@ import os
 import datetime
 import discord
 from discord.ext import commands, tasks
-from api import *
 import statistics
 import time
 import sys
-from constants import *
-from api import *
+from constants import MODELS, TOKEN
 from utils import get_prompts_counts
-
+# from api import keep_alive
 
 load_dotenv()
 
@@ -66,7 +64,7 @@ class pollinationsBot(commands.Bot):
         await bot.change_presence(
             activity=discord.CustomActivity(
                 name="Custom Status",
-                state=f"/pollinate to generate AI images",
+                state="/pollinate to generate AI images",
             )
         )
 
@@ -243,7 +241,7 @@ async def about(ctx):
 
     embed.set_thumbnail(url=profilePicture)
     embed.add_field(
-        name=f"What is Pollinations.ai? 🌸",
+        name="What is Pollinations.ai? 🌸",
         value="Pollinations.ai is a platform for creating AI-generated images completely for free. We have a growing collection of AI models that you can use to generate images.",
         inline=False,
     )

@@ -1,5 +1,5 @@
 import random
-from constants import *
+from constants import MODELS, MONGODB_URI
 import aiohttp
 import io
 from urllib.parse import quote
@@ -7,7 +7,6 @@ from pymongo import MongoClient
 import sys
 import json
 from PIL import Image
-import piexif
 from bson.son import SON
 import discord
 import datetime
@@ -204,7 +203,7 @@ async def generate_error_message(
             text=f"{interaction.user} used /{interaction.command.name}",
             icon_url=interaction.user.avatar,
         )
-    except:
+    except Exception:
         embed.set_footer(
             text=f"{interaction.user} used /{interaction.command.name}",
             icon_url=interaction.user.default_avatar,
