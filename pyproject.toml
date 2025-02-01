@@ -6,10 +6,11 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "aiohttp>=3.11.11",
+    "discord>=2.3.2",
     "discord-py>=2.4.0",
-    "flask>=3.1.0",
     "pillow>=11.0.0",
-    "pymongo>=4.10.1",
     "python-dotenv>=1.0.1",
     "requests>=2.32.3",
+    "ruff>=0.9.4",
+    "typing-extensions>=4.12.2",
 ]
