@@ -41,7 +41,7 @@ async def generate_image(
     seed = str(random.randint(0, 1000000000))
 
     url: str = f"https://image.pollinations.ai/prompt/{prompt}"
-    url += f"?seed={seed}" if not cached else ""
+    url += "" if cached else f"?seed={seed}"
     url += f"&width={width}"
     url += f"&height={height}"
     url += f"&model={model}"
@@ -63,7 +63,7 @@ async def generate_image(
         "url": quote(url, safe=":/&=?"),
     }
 
-    dic["seed"] = seed if not cached else None
+    dic["seed"] = None if cached else seed
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -121,7 +121,4 @@ def _extract_user_comment(image_bytes):
     except Exception:
         return "No user comment found."
 
-    if user_comment:
-        return user_comment
-    else:
-        return "No user comment found."
+    return user_comment if user_comment else "No user comment found."
