@@ -6,16 +6,16 @@ from discord.ext import commands, tasks
 import statistics
 import time
 import sys
+import requests
+import json
 from constants import MODELS, TOKEN
-from utils import get_prompts_counts
-# from api import keep_alive
 
 load_dotenv()
 
 start_time = None
-latencies = []
+latencies: list = []
 
-commands_ = {
+commands_: dict[str, str] = {
     "</pollinate:1223762317359976519> 🎨": """Generates AI Images based on your prompts
 - **prompt** 🗣️ : Your prompt for the Image to be generated
 - **width** ↔️ : The width of your prompted Image
@@ -51,8 +51,8 @@ commands_ = {
 
 
 class pollinationsBot(commands.Bot):
-    def __init__(self):
-        intents = discord.Intents.default()
+    def __init__(self) -> None:
+        intents: discord.Intents = discord.Intents.default()
         intents.messages = True
         intents.message_content = True
 
@@ -60,24 +60,33 @@ class pollinationsBot(commands.Bot):
         self.synced = False
 
     @tasks.loop(minutes=5)
-    async def change_status(self):
-        await bot.change_presence(
-            activity=discord.CustomActivity(
-                name="Custom Status",
-                state="/pollinate to generate AI images",
-            )
-        )
+    async def refresh_models(self) -> None:
+        try:
+            response = requests.get("https://image.pollinations.ai/models")
+            if response.ok:
+                global MODELS
+                MODELS.clear()
+                MODELS.extend(json.loads(response.text))
+                print(f"Models refreshed: {MODELS}")
+        except Exception as e:
+            print(f"Error refreshing models: {e}", file=sys.stdout)
 
-    async def on_ready(self):
+    async def on_ready(self) -> None:
         await load()
 
         global start_time
         start_time = datetime.datetime.now(datetime.UTC)
 
         await self.wait_until_ready()
+        await bot.change_presence(
+            activity=discord.CustomActivity(
+                name="Custom Status",
+                state="/pollinate to generate AI images",
+            )
+        )
         if not self.synced:
             await self.tree.sync()
-            self.change_status.start()
+            self.refresh_models.start()
             self.synced = True
 
         print(f"Logged in as {self.user.name} (ID: {self.user.id})")
@@ -88,14 +97,14 @@ class pollinationsBot(commands.Bot):
 bot = pollinationsBot()
 
 
-async def load():
+async def load() -> None:
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
             await bot.load_extension(f"cogs.{filename[:-3]}")
 
 
 @bot.event
-async def on_message(message):
+async def on_message(message) -> None:
     if message.author == bot.user:
         return
 
@@ -113,7 +122,7 @@ async def on_message(message):
 
 @bot.command()
 @commands.is_owner()
-async def sync(ctx):
+async def sync(ctx) -> None:
     await bot.tree.sync()
     synced = await bot.tree.sync()
     if len(synced) > 0:
@@ -123,29 +132,29 @@ async def sync(ctx):
 
 
 @bot.event
-async def on_command_completion(ctx):
-    end = time.perf_counter()
-    start = ctx.start
-    latency = (end - start) * 1000
+async def on_command_completion(ctx) -> None:
+    end: float = time.perf_counter()
+    start: float = ctx.start
+    latency: int = (end - start) * 1000
     latencies.append(latency)
     if len(latencies) > 10:
         latencies.pop(0)
 
 
 @bot.before_invoke
-async def before_invoke(ctx):
-    start = time.perf_counter()
+async def before_invoke(ctx) -> None:
+    start: float = time.perf_counter()
     ctx.start = start
 
 
 @bot.command()
-async def ping(ctx):
+async def ping(ctx) -> None:
     try:
         embed = discord.Embed(title="Pong!", color=discord.Color.green())
         message = await ctx.send(embed=embed)
 
-        end = time.perf_counter()
-        latency = (end - ctx.start) * 1000
+        end: float = time.perf_counter()
+        latency: int = (end - ctx.start) * 1000
 
         embed.add_field(name="Ping", value=f"{bot.latency * 1000:.2f} ms", inline=False)
         embed.add_field(name="Message Latency", value=f"{latency:.2f} ms", inline=False)
@@ -160,8 +169,8 @@ async def ping(ctx):
             )
 
         global start_time
-        current_time = datetime.datetime.now(datetime.UTC)
-        delta = current_time - start_time
+        current_time: datetime.datetime = datetime.datetime.now(datetime.UTC)
+        delta: datetime.timedelta = current_time - start_time
 
         hours, remainder = divmod(int(delta.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
@@ -186,9 +195,9 @@ async def ping(ctx):
 
 
 @bot.hybrid_command(name="help", description="View the various commands of this server")
-async def help(ctx):
-    user = bot.get_user(1123551005993357342)
-    profilePicture = user.avatar.url
+async def help(ctx) -> None:
+    user: discord.User | None = bot.get_user(1123551005993357342)
+    profilePicture: str = user.avatar.url
 
     embed = discord.Embed(
         title="Pollinations.ai Bot Commands",
@@ -209,7 +218,7 @@ async def help(ctx):
 
 
 @bot.hybrid_command(name="invite", description="Invite the bot to your server")
-async def invite(ctx):
+async def invite(ctx) -> None:
     embed = discord.Embed(
         title="Invite the bot to your server",
         url="https://discord.com/api/oauth2/authorize?client_id=1123551005993357342&permissions=534791060544&scope=bot%20applications.commands",
@@ -226,9 +235,9 @@ async def invite(ctx):
 
 
 @bot.hybrid_command(name="about", description="About the bot")
-async def about(ctx):
-    user = bot.get_user(1123551005993357342)
-    profilePicture = user.avatar.url
+async def about(ctx) -> None:
+    user: discord.User | None = bot.get_user(1123551005993357342)
+    profilePicture: str = user.avatar.url
 
     embed = discord.Embed(
         title="About Pollinations.ai Bot 🙌",
@@ -237,7 +246,9 @@ async def about(ctx):
         color=discord.Color.og_blurple(),
     )
 
-    github_emoji = discord.utils.get(bot.emojis, id=1187437992093155338, name="github")
+    github_emoji: discord.Emoji | None = discord.utils.get(
+        bot.emojis, id=1187437992093155338, name="github"
+    )
 
     embed.set_thumbnail(url=profilePicture)
     embed.add_field(
@@ -266,16 +277,11 @@ async def about(ctx):
         inline=False,
     )
 
-    embed.add_field(
-        name="Total Images Generated",
-        value=f"```{get_prompts_counts()}```",
-        inline=True,
-    )
     embed.add_field(name="Servers", value=f"```{len(bot.guilds)}```", inline=True)
 
     global start_time
-    current_time = datetime.datetime.now(datetime.UTC)
-    delta = current_time - start_time
+    current_time: datetime.datetime = datetime.datetime.now(datetime.UTC)
+    delta: datetime.timedelta = current_time - start_time
 
     hours, remainder = divmod(int(delta.total_seconds()), 3600)
     minutes, seconds = divmod(remainder, 60)
@@ -295,5 +301,4 @@ async def about(ctx):
 
 
 if __name__ == "__main__":
-    # keep_alive()  # used for keeping the bot alive if hosten on a cloud platform
     bot.run(token=TOKEN)

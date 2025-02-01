@@ -3,23 +3,23 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from utils import generate_error_message, generate_image, DimensionTooSmallError
+from utils.image_gen_utils import generate_image, validate_dimensions
+from utils.embed_utils import generate_error_message
+from utils.error_handler import send_error_embed
+from exceptions import DimensionTooSmallError, APIError
 from constants import MODELS
 
 
 class RandomImage(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot) -> None:
         self.bot = bot
-
-    async def cog_load(self):
-        await self.bot.wait_until_ready()
 
     @app_commands.command(name="random", description="Generate Random AI Images")
     @app_commands.choices(
         model=[app_commands.Choice(name=choice, value=choice) for choice in MODELS],
     )
     @app_commands.guild_only()
-    @app_commands.checks.cooldown(1, 15)
+    @app_commands.checks.cooldown(1, 10)
     @app_commands.describe(
         height="Height of the image",
         width="Width of the image",
@@ -37,18 +37,17 @@ class RandomImage(commands.Cog):
         negative: str | None = None,
         nologo: bool = False,
         private: bool = False,
-    ):
-        await interaction.response.defer(thinking=True, ephemeral=private)
+    ) -> None:
+        validate_dimensions(width, height)
 
-        if width < 16 or height < 16:
-            raise DimensionTooSmallError("Width and Height must be greater than 16")
+        await interaction.response.defer(thinking=True, ephemeral=private)
 
         try:
             model = model.value
         except Exception:
             pass
 
-        start = datetime.datetime.now()
+        start: datetime.datetime = datetime.datetime.now()
 
         dic, image = await generate_image(
             "Random Prompt",
@@ -67,15 +66,15 @@ class RandomImage(commands.Cog):
         if dic["nsfw"]:
             image_file.filename = f"SPOILER_{image_file.filename}"
 
-        time_taken = datetime.datetime.now() - start
+        time_taken: datetime.timedelta = datetime.datetime.now() - start
 
         embed = discord.Embed(
             title="Random Prompt",
-            description=f"```{dic['enhanced_prompt'][:4000]+"..." if len(dic['enhanced_prompt'])>= 4000 else dic['enhanced_prompt']}```"
+            description=f"```{dic['enhanced_prompt'][:4000] + '...' if len(dic['enhanced_prompt']) >= 4000 else dic['enhanced_prompt']}```"
             if "enhanced_prompt" in dic
             else "",
             timestamp=datetime.datetime.now(datetime.timezone.utc),
-            url=dic["bookmark_url"],
+            url=dic["url"],
         )
 
         embed.add_field(name="Seed", value=f"```{dic['seed']}```", inline=True)
@@ -99,29 +98,35 @@ class RandomImage(commands.Cog):
     @random_image_command.error
     async def random_image_command_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
-    ):
+    ) -> None:
         if isinstance(error, app_commands.CommandOnCooldown):
-            embed = await generate_error_message(
+            embed: discord.Embed = await generate_error_message(
                 interaction,
                 error,
-                cooldown_configuration=["- ```1 time every 15 seconds```"],
+                cooldown_configuration=["- 1 time every 10 seconds"],
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
-        else:
-            embed = discord.Embed(
-                title="An error occurred while generating a random image",
-                description=f"```cmd\n{error}\n```",
-                color=discord.Color.red(),
+
+        elif isinstance(error, DimensionTooSmallError):
+            await send_error_embed(
+                interaction,
+                "Dimensions Too Small",
+                f"```\n{str(error)}\n```",
             )
-            try:
-                await interaction.followup.send(embed=embed, ephemeral=True)
-            except Exception:
-                try:
-                    await interaction.edit_original_response(embed=embed)
-                except Exception:
-                    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        elif isinstance(error, APIError):
+            await send_error_embed(
+                interaction,
+                "Couldn't Generate the Requested Image 😔",
+                f"```\n{str(error)}\n```",
+            )
+
+        else:
+            await send_error_embed(
+                interaction, "An unexprected error occurred", f"```\n{str(error)}\n```"
+            )
 
 
-async def setup(bot):
+async def setup(bot) -> None:
     await bot.add_cog(RandomImage(bot))
     print("Random Image cog loaded")

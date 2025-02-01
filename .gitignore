@@ -170,6 +170,9 @@ cython_debug/
 # VS Code
 .vscode/
 
+# Ruff
+.ruff_cache/
+
 # PyPI configuration file
 .pypirc
 
