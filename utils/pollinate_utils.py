@@ -1,5 +1,5 @@
 from urllib.parse import urlparse, parse_qs
-from constants import MODELS
+from config import config
 
 
 def parse_url(url: str) -> dict:
@@ -9,7 +9,7 @@ def parse_url(url: str) -> dict:
     data = {
         "width": int(params.get("width", [1000])[0]),
         "height": int(params.get("height", [1000])[0]),
-        "model": params.get("model", [MODELS[0]])[0],
+        "model": params.get("model", [config.MODELS[0]])[0],
         "safe": True if params.get("safe", [False])[0] == "True" else False,
         "cached": True if "seed" not in params else False,
         "nologo": True if params.get("nologo", [False])[0] == "True" else False,

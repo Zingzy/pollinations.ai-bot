@@ -3,7 +3,7 @@ from typing import Any, Dict
 import datetime
 from discord import Embed
 import random
-from constants import WAITING_GIFS
+from config import config
 
 __all__: list[str] = ("generate_pollinate_embed", "generate_error_message")
 
@@ -15,7 +15,10 @@ async def generate_pollinate_embed(
     time_taken: datetime.timedelta,
 ) -> Embed:
     embed = discord.Embed(
-        title="", timestamp=datetime.datetime.now(datetime.timezone.utc), url=dic["url"]
+        title="",
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        url=dic["url"],
+        color=int(config.ui.colors.success, 16),
     )
 
     embed.add_field(
@@ -24,7 +27,11 @@ async def generate_pollinate_embed(
         inline=False,
     )
 
-    if len(dic["prompt"]) < 80 or dic["enhance"]:
+    if (
+        len(dic["prompt"])
+        < config.image_generation.validation.max_enhanced_prompt_length
+        or dic["enhance"]
+    ):
         if "enhanced_prompt" in dic and dic["enhanced_prompt"] is not None:
             embed.add_field(
                 name="Enhanced Prompt",
@@ -64,8 +71,6 @@ async def generate_error_message(
     if cooldown_configuration is None:
         cooldown_configuration: list[str] = [
             "- 1 time every 10 seconds",
-            "- 5 times every 60 seconds",
-            "- 200 times every 24 hours",
         ]
 
     end_time = datetime.datetime.now() + datetime.timedelta(seconds=error.retry_after)
@@ -74,10 +79,10 @@ async def generate_error_message(
     embed = discord.Embed(
         title="⏳ Cooldown",
         description=f"### You can use this command again <t:{end_time_ts}:R>",
-        color=discord.Color.red(),
+        color=int(config.ui.colors.error, 16),
         timestamp=interaction.created_at,
     )
-    embed.set_image(url=random.choice(WAITING_GIFS))
+    embed.set_image(url=random.choice(config.resources.waiting_gifs))
 
     embed.add_field(
         name="How many times can I use this command?",

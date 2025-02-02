@@ -5,6 +5,7 @@ from discord.ext import commands
 import traceback
 import asyncio
 
+from config import config
 from utils.embed_utils import generate_error_message
 from utils.image_gen_utils import generate_image, validate_dimensions, validate_prompt
 from utils.error_handler import send_error_embed
@@ -15,7 +16,6 @@ from exceptions import (
     DimensionTooSmallError,
     APIError,
 )
-from constants import MODELS
 
 
 class multiImagineButtonView(discord.ui.View):
@@ -39,7 +39,7 @@ class multiImagineButtonView(discord.ui.View):
                 label="",
                 style=discord.ButtonStyle.danger,
                 custom_id="multiimagine_delete",
-                emoji="<:delete:1187102382312652800>",
+                emoji=f"<:delete:{config.bot.emojis['delete_emoji_id']}>",
             )
         )
 
@@ -76,8 +76,8 @@ class multiImagineButtonView(discord.ui.View):
                 await interaction.response.send_message(
                     embed=discord.Embed(
                         title="Error",
-                        description="You can only delete your own images",
-                        color=discord.Color.red(),
+                        description=config.ui.error_messages["delete_unauthorized"],
+                        color=int(config.ui.colors.error, 16),
                     ),
                     ephemeral=True,
                 )
@@ -91,7 +91,7 @@ class multiImagineButtonView(discord.ui.View):
                 embed=discord.Embed(
                     title="Error Deleting the Image",
                     description=f"{e}",
-                    color=discord.Color.red(),
+                    color=int(config.ui.colors.error, 16),
                 ),
                 ephemeral=True,
             )
@@ -101,6 +101,7 @@ class multiImagineButtonView(discord.ui.View):
 class Multi_pollinate(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
+        self.command_config = config.commands["multi_pollinate"]
 
     async def cog_load(self) -> None:
         await self.bot.wait_until_ready()
@@ -112,7 +113,10 @@ class Multi_pollinate(commands.Cog):
     @app_commands.command(
         name="multi-pollinate", description="Imagine multiple prompts"
     )
-    @app_commands.checks.cooldown(1, 20)
+    @app_commands.checks.cooldown(
+        config.commands["multi_pollinate"].cooldown.rate,
+        config.commands["multi_pollinate"].cooldown.seconds,
+    )
     @app_commands.guild_only()
     @app_commands.describe(
         prompt="Prompt of the Image you want want to generate",
@@ -128,25 +132,25 @@ class Multi_pollinate(commands.Cog):
         self,
         interaction: discord.Interaction,
         prompt: str,
-        width: int = 1000,
-        height: int = 1000,
-        enhance: bool | None = None,
+        width: int = config.commands["multi_pollinate"].default_width,
+        height: int = config.commands["multi_pollinate"].default_height,
+        enhance: bool | None = config.image_generation.defaults.enhance,
         negative: str | None = None,
-        cached: bool = False,
-        nologo: bool = False,
-        private: bool = False,
+        cached: bool = config.image_generation.defaults.cached,
+        nologo: bool = config.image_generation.defaults.nologo,
+        private: bool = config.image_generation.defaults.private,
     ) -> None:
         validate_dimensions(width, height)
         validate_prompt(prompt)
 
-        total_models: int = len(MODELS)
+        total_models: int = len(config.MODELS)
 
         await interaction.response.send_message(
             embed=discord.Embed(
                 title="Generating Image",
                 description=f"Generating images across {total_models} models...\n"
                 f"Completed: 0/{total_models} 0%",
-                color=discord.Color.blurple(),
+                color=int(config.ui.colors.success, 16),
             ),
             ephemeral=private,
         )
@@ -178,12 +182,11 @@ class Multi_pollinate(commands.Cog):
                         description=f"Generating images across {total_models} models...\n"
                         f"Completed: {completed_count}/{total_models} "
                         f"({(completed_count / total_models * 100):.2f}%)",
-                        color=discord.Color.blurple(),
+                        color=int(config.ui.colors.success, 16),
                     )
                 )
 
         async def generate_for_model(i, model):
-            """Asynchronous function to generate an image for a specific model."""
             try:
                 sub_start_time: datetime.datetime = datetime.datetime.now()
                 dic, image = await generate_image(model=model, **command_args)
@@ -206,10 +209,13 @@ class Multi_pollinate(commands.Cog):
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(
-                    *[generate_for_model(i, model) for i, model in enumerate(MODELS)],
+                    *[
+                        generate_for_model(i, model)
+                        for i, model in enumerate(config.MODELS)
+                    ],
                     return_exceptions=True,
                 ),
-                timeout=180,
+                timeout=self.command_config.timeout_seconds,
             )
         except asyncio.TimeoutError:
             raise asyncio.TimeoutError
@@ -265,7 +271,9 @@ class Multi_pollinate(commands.Cog):
             embed: discord.Embed = await generate_error_message(
                 interaction,
                 error,
-                cooldown_configuration=["- 1 time every 20 seconds"],
+                cooldown_configuration=[
+                    f"- {self.command_config.cooldown.rate} time every {self.command_config.cooldown.seconds} seconds",
+                ],
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -273,7 +281,7 @@ class Multi_pollinate(commands.Cog):
             await send_error_embed(
                 interaction,
                 "Timeout Error",
-                "Image generation took too long and timed out. Please try again.",
+                config.ui.error_messages["timeout"],
             )
 
         elif isinstance(error, NoImagesGeneratedError):
@@ -306,7 +314,9 @@ class Multi_pollinate(commands.Cog):
 
         else:
             await send_error_embed(
-                interaction, "An unexprected error occurred", f"```\n{str(error)}\n```"
+                interaction,
+                config.ui.error_messages["unknown"],
+                f"```\n{str(error)}\n```",
             )
 
 

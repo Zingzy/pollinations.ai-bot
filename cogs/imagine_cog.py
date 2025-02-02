@@ -2,14 +2,14 @@ import datetime
 import discord
 from discord import app_commands
 from discord.ext import commands
+import traceback
 
-from constants import MODELS
+from config import config
 from utils.image_gen_utils import generate_image, validate_dimensions, validate_prompt
 from utils.embed_utils import generate_pollinate_embed, generate_error_message
 from utils.pollinate_utils import parse_url
 from utils.error_handler import send_error_embed
 from exceptions import DimensionTooSmallError, PromptTooLongError, APIError
-import traceback
 
 
 class ImagineButtonView(discord.ui.View):
@@ -20,7 +20,7 @@ class ImagineButtonView(discord.ui.View):
         label="Regenerate",
         style=discord.ButtonStyle.secondary,
         custom_id="regenerate-button",
-        emoji="<:redo:1187101382101180456>",
+        emoji=f"<:redo:{config.bot.emojis['redo_emoji_id']}>",
     )
     async def regenerate(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -29,7 +29,7 @@ class ImagineButtonView(discord.ui.View):
             embed=discord.Embed(
                 title="Regenerating Your Image",
                 description="Please wait while we generate your image",
-                color=discord.Color.blurple(),
+                color=int(config.ui.colors.success, 16),
             ),
             ephemeral=True,
         )
@@ -49,7 +49,7 @@ class ImagineButtonView(discord.ui.View):
                 embed=discord.Embed(
                     title="Couldn't Generate the Requested Image 😔",
                     description=f"```\n{e.message}\n```",
-                    color=discord.Color.red(),
+                    color=int(config.ui.colors.error, 16),
                 ),
                 ephemeral=True,
             )
@@ -60,7 +60,7 @@ class ImagineButtonView(discord.ui.View):
                 embed=discord.Embed(
                     title="Error",
                     description=f"Error generating image : {e}",
-                    color=discord.Color.red(),
+                    color=int(config.ui.colors.error, 16),
                 ),
                 ephemeral=True,
             )
@@ -86,7 +86,7 @@ class ImagineButtonView(discord.ui.View):
     @discord.ui.button(
         style=discord.ButtonStyle.red,
         custom_id="delete-button",
-        emoji="<:delete:1187102382312652800>",
+        emoji=f"<:delete:{config.bot.emojis['delete_emoji_id']}>",
     )
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
@@ -99,8 +99,8 @@ class ImagineButtonView(discord.ui.View):
                 await interaction.response.send_message(
                     embed=discord.Embed(
                         title="Error",
-                        description="You can only delete the images prompted by you",
-                        color=discord.Color.red(),
+                        description=config.ui.error_messages["delete_unauthorized"],
+                        color=int(config.ui.colors.error, 16),
                     ),
                     ephemeral=True,
                 )
@@ -114,7 +114,7 @@ class ImagineButtonView(discord.ui.View):
                 embed=discord.Embed(
                     title="Error Deleting the Image",
                     description=f"{e}",
-                    color=discord.Color.red(),
+                    color=int(config.ui.colors.error, 16),
                 ),
                 ephemeral=True,
             )
@@ -124,7 +124,7 @@ class ImagineButtonView(discord.ui.View):
         label="Bookmark",
         style=discord.ButtonStyle.secondary,
         custom_id="bookmark-button",
-        emoji="<:save:1187101389822902344>",
+        emoji=f"<:save:{config.bot.emojis['save_emoji_id']}>",
     )
     async def bookmark(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -137,7 +137,7 @@ class ImagineButtonView(discord.ui.View):
 
             embed: discord.Embed = discord.Embed(
                 description=f"**Prompt : {prompt}**",
-                color=discord.Color.og_blurple(),
+                color=int(config.ui.colors.success, 16),
             )
             embed.add_field(
                 name="",
@@ -152,7 +152,7 @@ class ImagineButtonView(discord.ui.View):
                 embed=discord.Embed(
                     title="Image Bookmarked",
                     description="The image has been bookmarked and sent to your DMs",
-                    color=discord.Color.blurple(),
+                    color=int(config.ui.colors.success, 16),
                 ),
                 ephemeral=True,
             )
@@ -164,7 +164,7 @@ class ImagineButtonView(discord.ui.View):
                 embed=discord.Embed(
                     title="Error Bookmarking the Image",
                     description=f"{e}",
-                    color=discord.Color.red(),
+                    color=int(config.ui.colors.error, 16),
                 ),
                 ephemeral=True,
             )
@@ -174,6 +174,7 @@ class ImagineButtonView(discord.ui.View):
 class Imagine(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
+        self.command_config = config.commands["pollinate"]
 
     async def cog_load(self) -> None:
         await self.bot.wait_until_ready()
@@ -181,10 +182,15 @@ class Imagine(commands.Cog):
 
     @app_commands.command(name="pollinate", description="Generate AI Images")
     @app_commands.choices(
-        model=[app_commands.Choice(name=choice, value=choice) for choice in MODELS],
+        model=[
+            app_commands.Choice(name=choice, value=choice) for choice in config.MODELS
+        ],
     )
     @app_commands.guild_only()
-    @app_commands.checks.cooldown(1, 10)
+    @app_commands.checks.cooldown(
+        config.commands["pollinate"].cooldown.rate,
+        config.commands["pollinate"].cooldown.seconds,
+    )
     @app_commands.describe(
         prompt="Prompt of the Image you want want to generate",
         height="Height of the Image",
@@ -200,14 +206,14 @@ class Imagine(commands.Cog):
         self,
         interaction: discord.Interaction,
         prompt: str,
-        width: int = 1000,
-        height: int = 1000,
-        model: app_commands.Choice[str] = MODELS[0],
-        enhance: bool | None = None,
-        safe: bool = False,
-        cached: bool = False,
-        nologo: bool = False,
-        private: bool = False,
+        width: int = config.commands["pollinate"].default_width,
+        height: int = config.commands["pollinate"].default_height,
+        model: app_commands.Choice[str] = config.MODELS[0],
+        enhance: bool | None = config.image_generation.defaults.enhance,
+        safe: bool = config.image_generation.defaults.safe,
+        cached: bool = config.image_generation.defaults.cached,
+        nologo: bool = config.image_generation.defaults.nologo,
+        private: bool = config.image_generation.defaults.private,
     ) -> None:
         validate_dimensions(width, height)
         validate_prompt(prompt)
@@ -215,7 +221,7 @@ class Imagine(commands.Cog):
         await interaction.response.defer(thinking=True, ephemeral=private)
 
         try:
-            model = model.value
+            model = model.value if model else None
         except Exception:
             pass
 
@@ -250,7 +256,9 @@ class Imagine(commands.Cog):
             embed: discord.Embed = await generate_error_message(
                 interaction,
                 error,
-                cooldown_configuration=["- 1 time every 10 seconds"],
+                cooldown_configuration=[
+                    f"- {self.command_config.cooldown.rate} time every {self.command_config.cooldown.seconds} seconds",
+                ],
             )
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -277,7 +285,9 @@ class Imagine(commands.Cog):
 
         else:
             await send_error_embed(
-                interaction, "An unexprected error occurred", f"```\n{str(error)}\n```"
+                interaction,
+                "An unexpected error occurred",
+                f"```\n{str(error)}\n```",
             )
 
 
