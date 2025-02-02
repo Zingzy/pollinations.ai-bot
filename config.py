@@ -112,6 +112,7 @@ def load_config(path: str = "config.toml") -> Config:
 def initialize_models(config_instance: Config) -> List[str]:
     """Pre-initialize models list by fetching from the API"""
     import requests
+
     try:
         response = requests.get(config_instance.api.models_list_endpoint)
         if response.ok:
