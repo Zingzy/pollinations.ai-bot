@@ -1,0 +1,100 @@
+[bot]
+command_prefix = "!"
+bot_id = ""
+avatar_url = ""
+
+[bot.commands]   # Command IDs of the bot (generated after commands are registered)
+pollinate_id = ""
+multi_pollinate_id = ""
+random_id = ""
+help_id = ""
+invite_id = ""
+about_id = ""
+
+[bot.emojis]   # emojis used in the bot
+github_emoji_id = ""
+redo_emoji_id = ""
+delete_emoji_id = ""
+save_emoji_id = ""
+
+[api]   # API endpoints and configurations
+models_list_endpoint = "https://image.pollinations.ai/models"
+image_gen_endpoint = "https://image.pollinations.ai/prompt"
+models_refresh_interval_minutes = 5
+max_timeout_seconds = 120
+
+[image_generation]
+referer = "discordbot"
+fallback_model = "flux"
+
+[image_generation.defaults]
+width = 1000
+height = 1000
+safe = false
+cached = false
+nologo = false
+enhance = true
+private = false
+
+[image_generation.validation]
+min_width = 16
+min_height = 16
+max_prompt_length = 2000
+max_enhanced_prompt_length = 80
+
+[commands.pollinate]
+default_width = 1000
+default_height = 1000
+
+[commands.pollinate.cooldown]
+rate = 1
+seconds = 10
+
+[commands.multi_pollinate]
+default_width = 1000
+default_height = 1000
+timeout_seconds = 180
+max_prompt_length = 4000
+
+[commands.multi_pollinate.cooldown]
+rate = 1
+seconds = 20
+
+[commands.random]
+default_width = 1000
+default_height = 1000
+
+[commands.random.cooldown]
+rate = 1
+seconds = 10
+
+[ui]
+bot_invite_url = ""
+support_server_url = ""
+github_repo_url = ""
+api_provider_url = "https://pollinations.ai/"
+bot_creator_avatar = ""
+
+[ui.colors]
+success = "0x7289da"  # og_blurple
+error = "0xe74c3c"    # red
+warning = "0xf1c40f"  # yellow
+
+[ui.error_messages]   # Default error messages
+dimension_too_small = "Width and Height must be greater than 16"
+prompt_too_long = "Prompt must be less than 2000 characters"
+delete_unauthorized = "You can only delete your own images"
+rate_limit = "Rate limit exceeded. Please try again later"
+resource_not_found = "The requested resource was not found"
+timeout = "Image generation took too long and timed out. Please try again."
+unknown = "An unexpected error occurred"
+
+[resources]
+waiting_gifs = [
+    "https://media3.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif?cid=ecf05e475p246q1gdcu96b5mkqlqvuapb7xay2hywmki7f5q&ep=v1_gifs_search&rid=giphy.gif&ct=g",
+    "https://media2.giphy.com/media/QBd2kLB5qDmysEXre9/giphy.gif?cid=ecf05e47ha6xwa7rq38dcst49nefabwwrods631hvz67ptfg&ep=v1_gifs_search&rid=giphy.gif&ct=g",
+    "https://media2.giphy.com/media/ZgqJGwh2tLj5C/giphy.gif?cid=ecf05e47gflyso481izbdcrw7y8okfkgdxgc7zoh34q9rxim&ep=v1_gifs_search&rid=giphy.gif&ct=g",
+    "https://media0.giphy.com/media/EWhLjxjiqdZjW/giphy.gif?cid=ecf05e473fifxe2bg4act0zq73nkyjw0h69fxi52t8jt37lf&ep=v1_gifs_search&rid=giphy.gif&ct=g",
+    "https://i.giphy.com/26BRuo6sLetdllPAQ.webp",
+    "https://i.giphy.com/tXL4FHPSnVJ0A.gif"
+]
