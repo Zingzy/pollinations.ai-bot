@@ -110,14 +110,13 @@ async def on_message(message) -> None:
     if message.author == bot.user:
         return
 
-    if bot.user in message.mentions:
-        if message.type is not discord.MessageType.reply:
-            embed = discord.Embed(
-                description=f"Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:{config.bot.commands['pollinate_id']}> or </multi-pollinate:{config.bot.commands['multi_pollinate_id']}> or type `/help` for more commands**.",
-                color=int(config.ui.colors.success, 16),
-            )
+    if bot.user in message.mentions and message.type is not discord.MessageType.reply:
+        embed = discord.Embed(
+            description=f"Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:{config.bot.commands['pollinate_id']}> or </multi-pollinate:{config.bot.commands['multi_pollinate_id']}> or type `/help` for more commands**.",
+            color=int(config.ui.colors.success, 16),
+        )
 
-            await message.reply(embed=embed)
+        await message.reply(embed=embed)
 
     await bot.process_commands(message)
 
