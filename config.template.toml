@@ -76,7 +76,7 @@ api_provider_url = "https://pollinations.ai/"
 bot_creator_avatar = ""
 
 [ui.colors]
-success = "0x7289da"  # og_blurple
+success = "0x7289DA"  # og_blurple
 error = "0xe74c3c"    # red
 warning = "0xf1c40f"  # yellow
 

@@ -15,4 +15,9 @@ async def send_error_embed(
     if not interaction.response.is_done():
         await interaction.response.send_message(embed=embed, ephemeral=True)
     else:
+        # try to delete the previous message
+        try:
+            await interaction.followup.delete_previous_message()
+        except Exception:
+            pass
         await interaction.followup.send(embed=embed, ephemeral=True)

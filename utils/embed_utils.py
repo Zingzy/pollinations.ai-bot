@@ -18,7 +18,6 @@ async def generate_pollinate_embed(
         title="",
         timestamp=datetime.datetime.now(datetime.timezone.utc),
         url=dic["url"],
-        color=int(config.ui.colors.success, 16),
     )
 
     embed.add_field(
