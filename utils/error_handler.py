@@ -1,22 +1,18 @@
-import discord
+from discord import Embed, Interaction
+from config import config
 
 
-# Create and sends an error embed
 async def send_error_embed(
-    interaction: discord.Interaction, title: str, description: str
-):
-    embed = discord.Embed(
-        title=title,
-        description=description,
-        color=discord.Color.red(),
+    interaction: Interaction, title: str, description: str = None
+) -> None:
+    if not description:
+        description = config.ui.error_messages["unknown"]
+
+    embed = Embed(
+        title=title, description=description, color=int(config.ui.colors.error, 16)
     )
-    # Try different methods to send the error message
-    for send_method in [
-        lambda: interaction.response.send_message(embed=embed, ephemeral=True),
-        lambda: interaction.edit_original_response(embed=embed),
-        lambda: interaction.followup.send(embed=embed, ephemeral=True),
-    ]:
-        try:
-            return await send_method()
-        except Exception:
-            continue
+
+    if not interaction.response.is_done():
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    else:
+        await interaction.followup.send(embed=embed, ephemeral=True)

@@ -9,8 +9,10 @@ dependencies = [
     "discord>=2.3.2",
     "discord-py>=2.4.0",
     "pillow>=11.0.0",
+    "pydantic>=2.10.6",
     "python-dotenv>=1.0.1",
     "requests>=2.32.3",
     "ruff>=0.9.4",
+    "tomli>=2.2.1",
     "typing-extensions>=4.12.2",
 ]

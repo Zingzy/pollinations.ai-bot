@@ -1,5 +1,4 @@
 import random
-from constants import MODELS
 import aiohttp
 import io
 from urllib.parse import quote
@@ -7,30 +6,34 @@ import sys
 import json
 from PIL import Image
 from exceptions import PromptTooLongError, DimensionTooSmallError, APIError
+from config import config
 
 __all__: list[str] = ("generate_image", "validate_prompt", "validate_dimensions")
 
 
 def validate_prompt(prompt) -> None:
-    if len(prompt) > 2000:
-        raise PromptTooLongError("Prompt must be less than 2000 characters")
+    if len(prompt) > config.image_generation.validation.max_prompt_length:
+        raise PromptTooLongError(config.ui.error_messages["prompt_too_long"])
 
 
 def validate_dimensions(width, height) -> None:
-    if width < 16 or height < 16:
-        raise DimensionTooSmallError("Width and Height must be greater than 16")
+    if (
+        width < config.image_generation.validation.min_width
+        or height < config.image_generation.validation.min_height
+    ):
+        raise DimensionTooSmallError(config.ui.error_messages["dimension_too_small"])
 
 
 async def generate_image(
     prompt: str = None,
-    width: int = 800,
-    height: int = 800,
-    model: str = f"{MODELS[0]}",
-    safe: bool = False,
-    cached: bool = False,
-    nologo: bool = False,
-    enhance: bool = False,
-    private: bool = False,
+    width: int = config.image_generation.defaults.width,
+    height: int = config.image_generation.defaults.height,
+    model: str = config.MODELS[0],
+    safe: bool = config.image_generation.defaults.safe,
+    cached: bool = config.image_generation.defaults.cached,
+    nologo: bool = config.image_generation.defaults.nologo,
+    enhance: bool = config.image_generation.defaults.enhance,
+    private: bool = config.image_generation.defaults.private,
     **kwargs,
 ):
     print(
@@ -40,16 +43,16 @@ async def generate_image(
 
     seed = str(random.randint(0, 1000000000))
 
-    url: str = f"https://image.pollinations.ai/prompt/{prompt}"
+    url: str = f"{config.api.image_gen_endpoint}/{prompt}"
     url += "" if cached else f"?seed={seed}"
     url += f"&width={width}"
     url += f"&height={height}"
-    url += f"&model={model}"
+    url += f"&model={model}" if model else ""
     url += f"&safe={safe}" if safe else ""
     url += f"&nologo={nologo}" if nologo else ""
     url += f"&enhance={enhance}" if enhance else ""
     url += f"&nofeed={private}" if private else ""
-    url += "&referer=discordbot"
+    url += f"&referer={config.image_generation.referer}"
 
     dic = {
         "prompt": prompt,
@@ -73,9 +76,9 @@ async def generate_image(
                         f"Server error occurred while generating image with status code: {response.status}\nPlease try again later"
                     )
                 elif response.status == 429:
-                    raise APIError("Rate limit exceeded. Please try again later")
+                    raise APIError(config.ui.error_messages["rate_limit"])
                 elif response.status == 404:
-                    raise APIError("The requested resource was not found")
+                    raise APIError(config.ui.error_messages["resource_not_found"])
                 elif response.status != 200:
                     raise APIError(
                         f"API request failed with status code: {response.status}",
@@ -95,7 +98,11 @@ async def generate_image(
 
                 try:
                     dic["nsfw"] = user_comment["has_nsfw_concept"]
-                    if enhance or len(prompt) < 80:
+                    if (
+                        enhance
+                        or len(prompt)
+                        < config.image_generation.validation.max_enhanced_prompt_length
+                    ):
                         enhance_prompt = user_comment["prompt"]
                         if enhance_prompt == prompt:
                             dic["enhanced_prompt"] = None

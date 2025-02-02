@@ -176,4 +176,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Configurations
+config.toml
+
 todo.md

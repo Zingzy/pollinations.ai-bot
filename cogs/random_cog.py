@@ -3,23 +3,29 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from config import config
 from utils.image_gen_utils import generate_image, validate_dimensions
 from utils.embed_utils import generate_error_message
 from utils.error_handler import send_error_embed
 from exceptions import DimensionTooSmallError, APIError
-from constants import MODELS
 
 
 class RandomImage(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
+        self.command_config = config.commands["random"]
 
     @app_commands.command(name="random", description="Generate Random AI Images")
     @app_commands.choices(
-        model=[app_commands.Choice(name=choice, value=choice) for choice in MODELS],
+        model=[
+            app_commands.Choice(name=choice, value=choice) for choice in config.MODELS
+        ],
     )
     @app_commands.guild_only()
-    @app_commands.checks.cooldown(1, 10)
+    @app_commands.checks.cooldown(
+        config.commands["random"].cooldown.rate,
+        config.commands["random"].cooldown.seconds,
+    )
     @app_commands.describe(
         height="Height of the image",
         width="Width of the image",
@@ -31,19 +37,19 @@ class RandomImage(commands.Cog):
     async def random_image_command(
         self,
         interaction: discord.Interaction,
-        width: int = 1000,
-        height: int = 1000,
-        model: app_commands.Choice[str] = MODELS[0],
+        width: int = config.commands["random"].default_width,
+        height: int = config.commands["random"].default_height,
+        model: app_commands.Choice[str] = config.MODELS[0],
         negative: str | None = None,
-        nologo: bool = False,
-        private: bool = False,
+        nologo: bool = config.image_generation.defaults.nologo,
+        private: bool = config.image_generation.defaults.private,
     ) -> None:
         validate_dimensions(width, height)
 
         await interaction.response.defer(thinking=True, ephemeral=private)
 
         try:
-            model = model.value
+            model = model.value if model else None
         except Exception:
             pass
 
@@ -75,6 +81,7 @@ class RandomImage(commands.Cog):
             else "",
             timestamp=datetime.datetime.now(datetime.timezone.utc),
             url=dic["url"],
+            color=int(config.ui.colors.success, 16),
         )
 
         embed.add_field(name="Seed", value=f"```{dic['seed']}```", inline=True)
@@ -103,7 +110,9 @@ class RandomImage(commands.Cog):
             embed: discord.Embed = await generate_error_message(
                 interaction,
                 error,
-                cooldown_configuration=["- 1 time every 10 seconds"],
+                cooldown_configuration=[
+                    f"- {self.command_config.cooldown.rate} time every {self.command_config.cooldown.seconds} seconds",
+                ],
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -123,7 +132,9 @@ class RandomImage(commands.Cog):
 
         else:
             await send_error_embed(
-                interaction, "An unexprected error occurred", f"```\n{str(error)}\n```"
+                interaction,
+                config.ui.error_messages["unknown"],
+                f"```\n{str(error)}\n```",
             )
 
 

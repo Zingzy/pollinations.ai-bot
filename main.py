@@ -6,17 +6,17 @@ from discord.ext import commands, tasks
 import statistics
 import time
 import sys
-import requests
-import json
-from constants import MODELS, TOKEN
+import aiohttp
+from config import config
 
-load_dotenv()
+load_dotenv(override=True)
 
+TOKEN: str = os.environ["TOKEN"]
 start_time = None
 latencies: list = []
 
 commands_: dict[str, str] = {
-    "</pollinate:1223762317359976519> 🎨": """Generates AI Images based on your prompts
+    f"</pollinate:{config.bot.commands['pollinate_id']}> 🎨": """Generates AI Images based on your prompts
 - **prompt** 🗣️ : Your prompt for the Image to be generated
 - **width** ↔️ : The width of your prompted Image
 - **height** ↕️ : The height of your prompted Image
@@ -26,7 +26,7 @@ commands_: dict[str, str] = {
 - **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
-    "</multi-pollinate:1264942861800050891> 🎨": """Generates AI Images using all available models
+    f"</multi-pollinate:{config.bot.commands['multi_pollinate_id']}> 🎨": """Generates AI Images using all available models
 - **prompt** 🗣️ : Your prompt for the Image to be generated
 - **width** ↔️ : The width of your prompted Image
 - **height** ↕️ : The height of your prompted Image
@@ -36,17 +36,16 @@ commands_: dict[str, str] = {
 - **enhance** 🖼️ : Specifies whether to enhance the image prompt or not (default True)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
-    "</random:1264942861800050890> 🎨": """Generates Random AI Images
+    f"</random:{config.bot.commands['random_id']}> 🎨": """Generates Random AI Images
 - **width** ↔️ : The width of your prompted Image
 - **height** ↕️ : The height of your prompted Image
 - **negative** ❎ : Specifies what not to be in the generated images
 - **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
-    "</leaderboard:1188098851807166506> 🏆": "Shows the Global Leaderboard",
-    "</help:1187383172992872509> ❓": "Displays this",
-    "</invite:1187439448833675286> 📨": "Invite the bot to your server",
-    "</about:1187439448833675288> ℹ️": "About the bot",
+    f"</help:{config.bot.commands['help_id']}> ❓": "Displays this",
+    f"</invite:{config.bot.commands['invite_id']}> 📨": "Invite the bot to your server",
+    f"</about:{config.bot.commands['about_id']}> ℹ️": "About the bot",
 }
 
 
@@ -56,19 +55,22 @@ class pollinationsBot(commands.Bot):
         intents.messages = True
         intents.message_content = True
 
-        super().__init__(command_prefix="!", intents=intents, help_command=None)
+        super().__init__(
+            command_prefix=config.bot.command_prefix, intents=intents, help_command=None
+        )
         self.synced = False
 
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=config.api.models_refresh_interval_minutes)
     async def refresh_models(self) -> None:
         try:
-            response = requests.get("https://image.pollinations.ai/models")
-            if response.ok:
-                global MODELS
-                MODELS.clear()
-                MODELS.extend(json.loads(response.text))
-                print(f"Models refreshed: {MODELS}")
+            async with aiohttp.ClientSession() as session:
+                async with session.get(config.api.models_list_endpoint) as response:
+                    if response.ok:
+                        config.MODELS.clear()
+                        config.MODELS.extend(await response.json())
+                        print(f"Models refreshed: {config.MODELS}")
         except Exception as e:
+            config.MODELS = [config.image_generation.fallback_model]
             print(f"Error refreshing models: {e}", file=sys.stdout)
 
     async def on_ready(self) -> None:
@@ -91,7 +93,7 @@ class pollinationsBot(commands.Bot):
 
         print(f"Logged in as {self.user.name} (ID: {self.user.id})")
         print(f"Connected to {len(self.guilds)} guilds")
-        print(f"Available MODELS: {MODELS}")
+        print(f"Available MODELS: {config.MODELS}")
 
 
 bot = pollinationsBot()
@@ -108,14 +110,13 @@ async def on_message(message) -> None:
     if message.author == bot.user:
         return
 
-    if bot.user in message.mentions:
-        if message.type is not discord.MessageType.reply:
-            embed = discord.Embed(
-                description="Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:1223762317359976519> or </multi-pollinate:1264942861800050891> or type `/help` for more commands**.",
-                color=discord.Color.og_blurple(),
-            )
+    if bot.user in message.mentions and message.type is not discord.MessageType.reply:
+        embed = discord.Embed(
+            description=f"Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:{config.bot.commands['pollinate_id']}> or </multi-pollinate:{config.bot.commands['multi_pollinate_id']}> or type `/help` for more commands**.",
+            color=int(config.ui.colors.success, 16),
+        )
 
-            await message.reply(embed=embed)
+        await message.reply(embed=embed)
 
     await bot.process_commands(message)
 
@@ -150,7 +151,7 @@ async def before_invoke(ctx) -> None:
 @bot.command()
 async def ping(ctx) -> None:
     try:
-        embed = discord.Embed(title="Pong!", color=discord.Color.green())
+        embed = discord.Embed(title="Pong!", color=int(config.ui.colors.success, 16))
         message = await ctx.send(embed=embed)
 
         end: float = time.perf_counter()
@@ -159,7 +160,6 @@ async def ping(ctx) -> None:
         embed.add_field(name="Ping", value=f"{bot.latency * 1000:.2f} ms", inline=False)
         embed.add_field(name="Message Latency", value=f"{latency:.2f} ms", inline=False)
 
-        # Calculate the average ping of the bot in the last 10 minutes
         if latencies:
             average_ping = statistics.mean(latencies)
             embed.add_field(
@@ -181,12 +181,10 @@ async def ping(ctx) -> None:
             inline=False,
         )
         embed.set_footer(
-            text="Information requested by: {}".format(ctx.author.name),
+            text=f"Information requested by: {ctx.author.name}",
             icon_url=ctx.author.avatar.url,
         )
-        embed.set_thumbnail(
-            url="https://uploads.poxipage.com/7q5iw7dwl5jc3zdjaergjhpat27tws8bkr9fgy45_938843265627717703-webp"
-        )
+        embed.set_thumbnail(url=config.bot_avatar_url)
 
         await message.edit(embed=embed)
 
@@ -196,13 +194,16 @@ async def ping(ctx) -> None:
 
 @bot.hybrid_command(name="help", description="View the various commands of this server")
 async def help(ctx) -> None:
-    user: discord.User | None = bot.get_user(1123551005993357342)
-    profilePicture: str = user.avatar.url
+    user: discord.User | None = bot.get_user(int(config.bot.bot_id))
+    try:
+        profilePicture: str = user.avatar.url
+    except AttributeError:
+        profilePicture = config.bot.avatar_url
 
     embed = discord.Embed(
         title="Pollinations.ai Bot Commands",
         description="Here is the list of the available commands:",
-        color=discord.Color.og_blurple(),
+        color=int(config.ui.colors.success, 16),
     )
 
     embed.set_thumbnail(url=profilePicture)
@@ -210,7 +211,7 @@ async def help(ctx) -> None:
         embed.add_field(name=i, value=commands_[i], inline=False)
 
     embed.set_footer(
-        text="Information requested by: {}".format(ctx.author.name),
+        text=f"Information requested by: {ctx.author.name}",
         icon_url=ctx.author.avatar.url,
     )
 
@@ -221,13 +222,13 @@ async def help(ctx) -> None:
 async def invite(ctx) -> None:
     embed = discord.Embed(
         title="Invite the bot to your server",
-        url="https://discord.com/api/oauth2/authorize?client_id=1123551005993357342&permissions=534791060544&scope=bot%20applications.commands",
+        url=config.ui.bot_invite_url,
         description="Click the link above to invite the bot to your server",
-        color=discord.Color.og_blurple(),
+        color=int(config.ui.colors.success, 16),
     )
 
     embed.set_footer(
-        text="Information requested by: {}".format(ctx.author.name),
+        text=f"Information requested by: {ctx.author.name}",
         icon_url=ctx.author.avatar.url,
     )
 
@@ -236,18 +237,21 @@ async def invite(ctx) -> None:
 
 @bot.hybrid_command(name="about", description="About the bot")
 async def about(ctx) -> None:
-    user: discord.User | None = bot.get_user(1123551005993357342)
-    profilePicture: str = user.avatar.url
+    user: discord.User | None = bot.get_user(int(config.bot.bot_id))
+    try:
+        profilePicture: str = user.avatar.url
+    except AttributeError:
+        profilePicture = config.bot.avatar_url
 
     embed = discord.Embed(
         title="About Pollinations.ai Bot 🙌",
-        url="https://pollinations.ai/",
+        url=config.ui.api_provider_url,
         description="I am the official Pollinations.ai Bot. I can generate AI Images from your prompts ✨.",
-        color=discord.Color.og_blurple(),
+        color=int(config.ui.colors.success, 16),
     )
 
     github_emoji: discord.Emoji | None = discord.utils.get(
-        bot.emojis, id=1187437992093155338, name="github"
+        bot.emojis, id=int(config.bot.emojis["github_emoji_id"]), name="github"
     )
 
     embed.set_thumbnail(url=profilePicture)
@@ -263,17 +267,17 @@ async def about(ctx) -> None:
     )
     embed.add_field(
         name="How do I use this bot? 🤔",
-        value="You can use this bot by typing `/help` or clicking </help:1187383172992872509> to get started.",
+        value=f"You can use this bot by typing `/help` or clicking </help:{config.bot.commands['help_id']}> to get started.",
         inline=False,
     )
     embed.add_field(
         name="How do I report a bug? 🪲",
-        value="You can report a bug by joining our [Discord Server](https://discord.gg/SFasNG4n6b).",
+        value=f"You can report a bug by joining our [Discord Server]({config.ui.support_server_url}).",
         inline=False,
     )
     embed.add_field(
         name=f"How do I contribute to this project? {str(github_emoji)}",
-        value="This project is open source. You can contribute to this project by visiting our [GitHub Repository](https://github.com/zingzy/pollinations.ai-bot).",
+        value=f"This project is open source. You can contribute to this project by visiting our [GitHub Repository]({config.ui.github_repo_url}).",
         inline=False,
     )
 
@@ -294,7 +298,7 @@ async def about(ctx) -> None:
 
     embed.set_footer(
         text="Bot created by Zngzy",
-        icon_url="https://i.ibb.co/6Pb7XG9/18622ff1cc55d7dca730d1ac246b6192.png",
+        icon_url=config.ui.bot_creator_avatar,
     )
 
     await ctx.send(embed=embed)
