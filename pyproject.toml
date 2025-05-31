@@ -5,6 +5,7 @@ description = "Official Discord Bot for pollinations.ai"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "aiofiles>=24.1.0",
     "aiohttp>=3.11.11",
     "discord>=2.3.2",
     "discord-py>=2.4.0",

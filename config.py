@@ -6,6 +6,8 @@ from pathlib import Path
 import sys
 import os
 import re
+import aiohttp
+import asyncio
 
 
 class BotConfig(BaseModel):
@@ -125,8 +127,29 @@ def resolve_env_variables(data: Any) -> Any:
         return data
 
 
+async def load_config_async(path: str = "config.toml") -> Config:
+    """Load and validate config from TOML file asynchronously"""
+    config_path = Path(path)
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found at {config_path}")
+
+    # Use asyncio to run file I/O in thread pool to avoid blocking
+    loop = asyncio.get_event_loop()
+
+    def _read_config():
+        with open(config_path, "rb") as f:
+            return tomli.load(f)
+
+    config_data = await loop.run_in_executor(None, _read_config)
+
+    # Resolve environment variables
+    config_data = resolve_env_variables(config_data)
+
+    return Config(**config_data)
+
+
 def load_config(path: str = "config.toml") -> Config:
-    """Load and validate config from TOML file"""
+    """Load and validate config from TOML file (synchronous fallback for startup)"""
     config_path = Path(path)
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found at {config_path}")
@@ -140,8 +163,22 @@ def load_config(path: str = "config.toml") -> Config:
     return Config(**config_data)
 
 
+async def initialize_models_async(config_instance: Config) -> List[str]:
+    """Asynchronously initialize models list by fetching from the API"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                config_instance.api.models_list_endpoint
+            ) as response:
+                if response.ok:
+                    return await response.json()
+    except Exception as e:
+        logger.error(f"Error pre-initializing models: {e}")
+    return [config_instance.image_generation.fallback_model]
+
+
 def initialize_models(config_instance: Config) -> List[str]:
-    """Pre-initialize models list by fetching from the API"""
+    """Pre-initialize models list by fetching from the API (synchronous fallback)"""
     import requests
 
     try:
@@ -156,7 +193,7 @@ def initialize_models(config_instance: Config) -> List[str]:
 # Load config on import
 try:
     config: Config = load_config()
-    # Pre-initialize models list
+    # Pre-initialize models list (will be replaced with async version during bot startup)
     config.MODELS = initialize_models(config)
 except Exception as e:
     raise RuntimeError(f"Failed to load config: {e}") from e

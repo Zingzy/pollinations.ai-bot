@@ -5,9 +5,9 @@ import discord
 from discord.ext import commands, tasks
 import statistics
 import time
-import aiohttp
-from config import config
-from utils.logger import discord_logger
+import aiofiles.os
+from config import config, initialize_models_async
+from utils.logger import discord_logger, logger
 import traceback
 
 load_dotenv(override=True)
@@ -64,16 +64,15 @@ class pollinationsBot(commands.Bot):
     @tasks.loop(minutes=config.api.models_refresh_interval_minutes)
     async def refresh_models(self) -> None:
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(config.api.models_list_endpoint) as response:
-                    if response.ok:
-                        config.MODELS.clear()
-                        config.MODELS.extend(await response.json())
-                        discord_logger.log_bot_event(
-                            action="model_refresh",
-                            status="success",
-                            details=f"Models refreshed: {config.MODELS}",
-                        )
+            # Use the async model initialization function
+            new_models = await initialize_models_async(config)
+            config.MODELS.clear()
+            config.MODELS.extend(new_models)
+            discord_logger.log_bot_event(
+                action="model_refresh",
+                status="success",
+                details=f"Models refreshed: {config.MODELS}",
+            )
         except Exception as e:
             config.MODELS = [config.image_generation.fallback_model]
             discord_logger.log_error(
@@ -98,6 +97,25 @@ class pollinationsBot(commands.Bot):
         )
         if not self.synced:
             await self.tree.sync()
+
+            # Initialize models asynchronously on startup
+            try:
+                new_models = await initialize_models_async(config)
+                config.MODELS.clear()
+                config.MODELS.extend(new_models)
+                discord_logger.log_bot_event(
+                    action="async_model_init",
+                    status="success",
+                    details=f"Models initialized asynchronously: {config.MODELS}",
+                )
+            except Exception as e:
+                discord_logger.log_error(
+                    error_type="async_model_init_error",
+                    error_message=str(e),
+                    traceback=None,
+                    context={"fallback_model": config.image_generation.fallback_model},
+                )
+
             self.refresh_models.start()
             self.synced = True
 
@@ -116,9 +134,24 @@ bot = pollinationsBot()
 
 
 async def load() -> None:
-    for filename in os.listdir("./cogs"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"cogs.{filename[:-3]}")
+    # Use async directory listing to avoid blocking
+    try:
+        filenames = await aiofiles.os.listdir("./cogs")
+        for filename in filenames:
+            if filename.endswith(".py"):
+                await bot.load_extension(f"cogs.{filename[:-3]}")
+    except ImportError:
+        # Fallback to synchronous method if aiofiles is not available
+        logger.warning("aiofiles not available, using synchronous directory listing")
+        for filename in os.listdir("./cogs"):
+            if filename.endswith(".py"):
+                await bot.load_extension(f"cogs.{filename[:-3]}")
+    except Exception as e:
+        # Fallback to synchronous method for any other errors
+        logger.warning(f"Async directory listing failed, falling back to sync: {e}")
+        for filename in os.listdir("./cogs"):
+            if filename.endswith(".py"):
+                await bot.load_extension(f"cogs.{filename[:-3]}")
 
 
 @bot.event

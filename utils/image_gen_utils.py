@@ -1,6 +1,7 @@
 import random
 import aiohttp
 import io
+import asyncio
 from utils.logger import logger
 from urllib.parse import quote
 import json
@@ -96,7 +97,8 @@ async def generate_image(
                         response.status, "Received empty response from server"
                     )
 
-                user_comment = _extract_user_comment(image_data)
+                # Process image metadata asynchronously to avoid blocking
+                user_comment = await _extract_user_comment_async(image_data)
 
                 image_file = io.BytesIO(image_data)
                 image_file.seek(0)
@@ -124,7 +126,30 @@ async def generate_image(
         raise APIError(500, f"Network error occurred: {str(e)}")
 
 
+async def _extract_user_comment_async(image_bytes):
+    """Extract user comment from image EXIF data asynchronously"""
+    loop = asyncio.get_event_loop()
+
+    def _extract_sync():
+        try:
+            image = Image.open(io.BytesIO(image_bytes))
+            exif = image.info["exif"].decode("latin-1", errors="ignore")
+            user_comment = json.loads(exif[exif.find("{") : exif.rfind("}") + 1])
+            return (
+                user_comment
+                if user_comment
+                else {"has_nsfw_concept": False, "prompt": ""}
+            )
+        except Exception:
+            logger.exception("Error extracting user comment from image EXIF data")
+            return {"has_nsfw_concept": False, "prompt": ""}
+
+    # Run the CPU-intensive PIL operation in a thread pool
+    return await loop.run_in_executor(None, _extract_sync)
+
+
 def _extract_user_comment(image_bytes):
+    """Synchronous fallback for extracting user comment (deprecated)"""
     image = Image.open(io.BytesIO(image_bytes))
 
     try:
