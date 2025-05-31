@@ -18,7 +18,7 @@
 <img src="https://img.shields.io/github/last-commit/zingzy/pollinations.ai-bot?logo=github" alt="GitHub last commit">
 <img src="https://img.shields.io/github/commit-activity/m/zingzy/pollinations.ai-bot?logo=github" alt="GitHub commit activity">
 <img src="https://img.shields.io/github/issues/zingzy/pollinations.ai-bot?logo=github" alt="GitHub issues">
-<a href="https://discord.gg/SFasNG4n6b"><img src="https://img.shields.io/discord/885844321461485618?logo=discord" alt="Discord"></a>
+<a href="https://discord.gg/k9F7SyTgqn"><img src="https://img.shields.io/discord/885844321461485618?logo=discord" alt="Discord"></a>
 </p>
 
 
@@ -38,8 +38,6 @@
 
 - Generate **random AI images** using the `/random` command
 
-- View **Leaderboard** of the top users using the `/leaderboard` command
-
 ---
 
 ### 🚀 Getting Started
@@ -53,48 +51,61 @@
 
 ### ⚙️ How to setup
 
-#### Rename the `.env.example` file to `.env`
+#### Prerequisites
+
+- Python 3.11 or higher
+- [uv](https://docs.astral.sh/uv/) package manager
+- Discord Developer Account
+- [Pollinations.ai token](https://auth.pollinations.ai)
+
+#### Environment Setup
+
+**1. Clone the repository**
+
+```bash
+git clone https://github.com/zingzy/pollinations.ai-bot.git
+cd pollinations.ai-bot
+```
+
+**2. Install uv package manager**
+
+```bash
+pip install uv
+```
+
+**3. Install dependencies**
+
+```bash
+uv sync
+```
+
+**4. Setup environment files**
+
+Rename the `.env.example` file to `.env`:
 
 ```bash
 mv .env.example .env
 ```
 
-Now open the `.env` file and add your discord bot `TOKEN` and `MONGODB_URI` to the file.
-
-#### Install dependencies
+Copy the configuration template:
 
 ```bash
-pip install -r requirements.txt
-
+cp config.template.toml config.toml
 ```
 
-OR
-
-```bash
-pipenv install
-
-```
+Now open the `.env` file and add your discord bot `TOKEN`. Also fill in the required values in `config.toml` file including your Pollinations.ai token.
 
 #### Start the bot
 
-Linux
-
 ```bash
-python3 main.py
-
-```
-Windows
-
-```ps
-python main.py
-
+uv run main.py
 ```
 
 ---
 
 ### 📝 Feedback / Issues
 
-To give feedback, ask a question or make a feature request, you can either use the [Github Discussions](https://github.com/Zingzy/pollinations.ai-bot/discussions)  or [JOIN OUR SUPPORT SERVER ](https://discord.gg/SFasNG4n6b)🪬
+To give feedback, ask a question or make a feature request, you can either use the [Github Discussions](https://github.com/Zingzy/pollinations.ai-bot/discussions) or [JOIN OUR SUPPORT SERVER](https://discord.gg/k9F7SyTgqn) 🪬
 
 Bugs are logged using the github issue system. To report a bug, simply [open a new issue](https://github.com/Zingzy/pollinations.ai-bot/issues/new) 🪲
 
@@ -104,12 +115,13 @@ Bugs are logged using the github issue system. To report a bug, simply [open a n
 
 Contributions, issues and feature requests are welcome! Feel free to check [issues page](https://github.com/Zingzy/pollinations.ai-bot/issues).
 
+Please read our [Contributing Guidelines](.github/contributing.md) for detailed information about:
+- Development environment setup
+- Code style guidelines
+- Pull request process
+- Testing procedures
+
 ---
-
-### 💡 what's next
-
-- Add **Likes** and **bookmark** view commands
-- Add **style** option in pollinate command
 
 Any Other suggestions would be appreciated ...
 

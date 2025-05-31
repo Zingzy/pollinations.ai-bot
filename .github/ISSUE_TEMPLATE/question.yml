@@ -1,0 +1,68 @@
+name: Question
+description: Ask a question about the bot or get help with setup/usage
+title: "[Question]: "
+labels: ["question", "help wanted"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about the Pollinations.ai Discord Bot? We're here to help!
+        
+        **Before asking:** Please check the [documentation](../contributing.md) and existing issues first.
+
+  - type: dropdown
+    id: question-type
+    attributes:
+      label: Question Type
+      description: What type of question is this?
+      options:
+        - Setup/Installation
+        - Configuration
+        - Usage/Commands
+        - Development/Contributing
+        - API/Integration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: Please describe your question in detail...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context (what you're trying to achieve, what you've already tried, etc.)
+      placeholder: |
+        - What I'm trying to do:
+        - What I've already tried:
+        - Relevant configuration/setup:
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment (if relevant)
+      description: If this is a technical question, please provide environment details
+      placeholder: "Python version, OS, Discord.py version, etc."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues and documentation
+          required: true
+        - label: This question is related to the Pollinations.ai Discord Bot
+          required: true 
