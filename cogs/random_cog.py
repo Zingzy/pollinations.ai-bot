@@ -5,7 +5,7 @@ from discord.ext import commands
 
 from config import config
 from utils.image_gen_utils import generate_image, validate_dimensions
-from utils.embed_utils import generate_error_message
+from utils.embed_utils import generate_error_message, SafeEmbed
 from utils.error_handler import send_error_embed
 from exceptions import DimensionTooSmallError, APIError
 
@@ -74,9 +74,9 @@ class RandomImage(commands.Cog):
 
         time_taken: datetime.timedelta = datetime.datetime.now() - start
 
-        embed = discord.Embed(
+        embed = SafeEmbed(
             title="Random Prompt",
-            description=f"```{dic['enhanced_prompt'][:4000] + '...' if len(dic['enhanced_prompt']) >= 4000 else dic['enhanced_prompt']}```"
+            description=f"```{dic['enhanced_prompt']}```"
             if "enhanced_prompt" in dic
             else "",
             timestamp=datetime.datetime.now(datetime.timezone.utc),
@@ -107,7 +107,7 @@ class RandomImage(commands.Cog):
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ) -> None:
         if isinstance(error, app_commands.CommandOnCooldown):
-            embed: discord.Embed = await generate_error_message(
+            embed: SafeEmbed = await generate_error_message(
                 interaction,
                 error,
                 cooldown_configuration=[

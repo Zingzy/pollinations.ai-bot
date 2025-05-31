@@ -18,13 +18,14 @@ delete_emoji_id = ""
 save_emoji_id = ""
 
 [api]   # API endpoints and configurations
+api_key = "${POLLI_TOKEN}"
 models_list_endpoint = "https://image.pollinations.ai/models"
 image_gen_endpoint = "https://image.pollinations.ai/prompt"
 models_refresh_interval_minutes = 5
 max_timeout_seconds = 120
 
 [image_generation]
-referer = "discordbot"
+referer = ""   # Get the referer from the auth.pollinations.ai website
 fallback_model = "flux"
 
 [image_generation.defaults]

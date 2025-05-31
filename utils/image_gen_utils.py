@@ -1,8 +1,9 @@
 import random
 import aiohttp
 import io
+import asyncio
+from utils.logger import logger
 from urllib.parse import quote
-import sys
 import json
 from PIL import Image
 from exceptions import PromptTooLongError, DimensionTooSmallError, APIError
@@ -36,9 +37,8 @@ async def generate_image(
     private: bool = config.image_generation.defaults.private,
     **kwargs,
 ):
-    print(
-        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, safe: {safe}, cached: {cached}, nologo: {nologo}, enhance: {enhance}, model: {model}",
-        file=sys.stderr,
+    logger.info(
+        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, safe: {safe}, cached: {cached}, nologo: {nologo}, enhance: {enhance}, model: {model}"
     )
 
     seed = str(random.randint(0, 1000000000))
@@ -68,9 +68,15 @@ async def generate_image(
 
     dic["seed"] = None if cached else seed
 
+    headers = {
+        "Authorization": f"Bearer {config.api.api_key}",
+    }
+
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, allow_redirects=True) as response:
+            async with session.get(
+                url, allow_redirects=True, headers=headers
+            ) as response:
                 if response.status >= 500:
                     raise APIError(
                         f"Server error occurred while generating image with status code: {response.status}\nPlease try again later"
@@ -91,7 +97,8 @@ async def generate_image(
                         response.status, "Received empty response from server"
                     )
 
-                user_comment = _extract_user_comment(image_data)
+                # Process image metadata asynchronously to avoid blocking
+                user_comment = await _extract_user_comment_async(image_data)
 
                 image_file = io.BytesIO(image_data)
                 image_file.seek(0)
@@ -119,13 +126,37 @@ async def generate_image(
         raise APIError(500, f"Network error occurred: {str(e)}")
 
 
+async def _extract_user_comment_async(image_bytes):
+    """Extract user comment from image EXIF data asynchronously"""
+    loop = asyncio.get_event_loop()
+
+    def _extract_sync():
+        try:
+            image = Image.open(io.BytesIO(image_bytes))
+            exif = image.info["exif"].decode("latin-1", errors="ignore")
+            user_comment = json.loads(exif[exif.find("{") : exif.rfind("}") + 1])
+            return (
+                user_comment
+                if user_comment
+                else {"has_nsfw_concept": False, "prompt": ""}
+            )
+        except Exception:
+            logger.exception("Error extracting user comment from image EXIF data")
+            return {"has_nsfw_concept": False, "prompt": ""}
+
+    # Run the CPU-intensive PIL operation in a thread pool
+    return await loop.run_in_executor(None, _extract_sync)
+
+
 def _extract_user_comment(image_bytes):
+    """Synchronous fallback for extracting user comment (deprecated)"""
     image = Image.open(io.BytesIO(image_bytes))
 
     try:
         exif = image.info["exif"].decode("latin-1", errors="ignore")
         user_comment = json.loads(exif[exif.find("{") : exif.rfind("}") + 1])
     except Exception:
+        logger.exception("Error extracting user comment from image EXIF data")
         return "No user comment found."
 
     return user_comment if user_comment else "No user comment found."

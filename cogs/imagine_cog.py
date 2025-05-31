@@ -6,9 +6,14 @@ import traceback
 
 from config import config
 from utils.image_gen_utils import generate_image, validate_dimensions, validate_prompt
-from utils.embed_utils import generate_pollinate_embed, generate_error_message
+from utils.embed_utils import (
+    generate_pollinate_embed,
+    generate_error_message,
+    SafeEmbed,
+)
 from utils.pollinate_utils import parse_url
 from utils.error_handler import send_error_embed
+from utils.logger import discord_logger
 from exceptions import DimensionTooSmallError, PromptTooLongError, APIError
 
 
@@ -26,7 +31,7 @@ class ImagineButtonView(discord.ui.View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ) -> None:
         await interaction.response.send_message(
-            embed=discord.Embed(
+            embed=SafeEmbed(
                 title="Regenerating Your Image",
                 description="Please wait while we generate your image",
                 color=int(config.ui.colors.success, 16),
@@ -35,18 +40,49 @@ class ImagineButtonView(discord.ui.View):
         )
 
         start: datetime.datetime = datetime.datetime.now()
-
-        interaction_data: discord.Embed = interaction.message.embeds[0].to_dict()
+        interaction_data: dict = interaction.message.embeds[0].to_dict()
         original_url: str | None = interaction.message.embeds[0].url
-
         prompt: str = interaction_data["fields"][0]["value"][3:-3]
         data: dict = parse_url(original_url)
 
         try:
+            discord_logger.log_image_generation(
+                action="regenerate_start",
+                model=data.get("model", "unknown"),
+                dimensions={
+                    "width": data.get("width", 0),
+                    "height": data.get("height", 0),
+                },
+                generation_time=0,
+                status="started",
+                cached=data.get("cached", False),
+            )
+
             dic, image = await generate_image(prompt=prompt, **data)
+            time_taken = (datetime.datetime.now() - start).total_seconds()
+            discord_logger.log_image_generation(
+                action="regenerate_complete",
+                model=data.get("model", "unknown"),
+                dimensions={
+                    "width": data.get("width", 0),
+                    "height": data.get("height", 0),
+                },
+                generation_time=time_taken,
+                status="success",
+                cached=data.get("cached", False),
+            )
         except APIError as e:
+            discord_logger.log_error(
+                error_type="api_error",
+                error_message=str(e),
+                context={
+                    "prompt": prompt,
+                    "model": data.get("model", "unknown"),
+                    "action": "regenerate",
+                },
+            )
             await interaction.followup.send(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Couldn't Generate the Requested Image 😔",
                     description=f"```\n{e.message}\n```",
                     color=int(config.ui.colors.error, 16),
@@ -55,11 +91,20 @@ class ImagineButtonView(discord.ui.View):
             )
             return
         except Exception as e:
-            print(e, "\n", traceback.format_exc())
+            discord_logger.log_error(
+                error_type="generation_error",
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={
+                    "prompt": prompt,
+                    "model": data.get("model", "unknown"),
+                    "action": "regenerate",
+                },
+            )
             await interaction.followup.send(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Error",
-                    description=f"Error generating image : {e}",
+                    description=f"Error generating image: {e}",
                     color=int(config.ui.colors.error, 16),
                 ),
                 ephemeral=True,
@@ -67,14 +112,12 @@ class ImagineButtonView(discord.ui.View):
             return
 
         image_file = discord.File(image, filename="image.png")
-
         if dic["nsfw"]:
             image_file.filename = f"SPOILER_{image_file.filename}"
+        time_taken_delta: datetime.timedelta = datetime.datetime.now() - start
 
-        time_taken: datetime.timedelta = datetime.datetime.now() - start
-
-        embed: discord.Embed = await generate_pollinate_embed(
-            interaction, False, dic, time_taken
+        embed: SafeEmbed = await generate_pollinate_embed(
+            interaction, False, dic, time_taken_delta
         )
 
         await interaction.followup.send(
@@ -91,13 +134,21 @@ class ImagineButtonView(discord.ui.View):
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             author_id: int = interaction.message.interaction_metadata.user.id
-
             if (
                 interaction.user.id != author_id
                 and not interaction.user.guild_permissions.administrator
             ):
+                discord_logger.log_error(
+                    error_type="permission",
+                    error_message="Unauthorized delete attempt",
+                    context={
+                        "user_id": interaction.user.id,
+                        "author_id": author_id,
+                        "guild_id": interaction.guild_id if interaction.guild else None,
+                    },
+                )
                 await interaction.response.send_message(
-                    embed=discord.Embed(
+                    embed=SafeEmbed(
                         title="Error",
                         description=config.ui.error_messages["delete_unauthorized"],
                         color=int(config.ui.colors.error, 16),
@@ -107,11 +158,27 @@ class ImagineButtonView(discord.ui.View):
                 return
 
             await interaction.message.delete()
+            discord_logger.log_bot_event(
+                action="image_delete",
+                status="success",
+                details={
+                    "user_id": interaction.user.id,
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
+            )
             return
         except Exception as e:
-            print(e, "\n", traceback.format_exc())
+            discord_logger.log_error(
+                error_type="delete_error",
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={
+                    "user_id": interaction.user.id,
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
+            )
             await interaction.response.send_message(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Error Deleting the Image",
                     description=f"{e}",
                     color=int(config.ui.colors.error, 16),
@@ -130,13 +197,11 @@ class ImagineButtonView(discord.ui.View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ) -> None:
         try:
-            interaction_data: discord.Embed = interaction.message.embeds[0].to_dict()
-
+            interaction_data: dict = interaction.message.embeds[0].to_dict()
             prompt: str = interaction_data["fields"][0]["value"][3:-3]
             url: str = interaction_data["url"]
-
-            embed: discord.Embed = discord.Embed(
-                description=f"**Prompt : {prompt}**",
+            embed: SafeEmbed = SafeEmbed(
+                description=f"**Prompt: {prompt}**",
                 color=int(config.ui.colors.success, 16),
             )
             embed.add_field(
@@ -145,11 +210,14 @@ class ImagineButtonView(discord.ui.View):
                 inline=False,
             )
             embed.set_image(url=url)
-
             await interaction.user.send(embed=embed)
-
+            discord_logger.log_bot_event(
+                action="image_bookmark",
+                status="success",
+                details={"user_id": interaction.user.id, "prompt": prompt, "url": url},
+            )
             await interaction.response.send_message(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Image Bookmarked",
                     description="The image has been bookmarked and sent to your DMs",
                     color=int(config.ui.colors.success, 16),
@@ -157,11 +225,18 @@ class ImagineButtonView(discord.ui.View):
                 ephemeral=True,
             )
             return
-
         except Exception as e:
-            print(e, "\n", traceback.format_exc())
+            discord_logger.log_error(
+                error_type="bookmark_error",
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={
+                    "user_id": interaction.user.id,
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
+            )
             await interaction.response.send_message(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Error Bookmarking the Image",
                     description=f"{e}",
                     color=int(config.ui.colors.error, 16),
@@ -179,6 +254,9 @@ class Imagine(commands.Cog):
     async def cog_load(self) -> None:
         await self.bot.wait_until_ready()
         self.bot.add_view(ImagineButtonView())
+        discord_logger.log_bot_event(
+            action="cog_load", status="success", details={"cog": "Imagine"}
+        )
 
     @app_commands.command(name="pollinate", description="Generate AI Images")
     @app_commands.choices(
@@ -192,7 +270,7 @@ class Imagine(commands.Cog):
         config.commands["pollinate"].cooldown.seconds,
     )
     @app_commands.describe(
-        prompt="Prompt of the Image you want want to generate",
+        prompt="Prompt of the Image you want to generate",
         height="Height of the Image",
         width="Width of the Image",
         model="Model to use for generating the Image",
@@ -217,35 +295,61 @@ class Imagine(commands.Cog):
     ) -> None:
         validate_dimensions(width, height)
         validate_prompt(prompt)
-
         await interaction.response.defer(thinking=True, ephemeral=private)
-
         try:
             model = model.value if model else None
         except Exception:
             pass
 
         start: datetime.datetime = datetime.datetime.now()
-
-        dic, image = await generate_image(
-            prompt, width, height, model, safe, cached, nologo, enhance, private
+        discord_logger.log_image_generation(
+            action="generate_start",
+            model=model or "default",
+            dimensions={"width": width, "height": height},
+            generation_time=0,
+            status="started",
+            cached=cached,
         )
-
-        image_file = discord.File(image, filename="image.png")
-        if dic["nsfw"]:
-            image_file.filename = f"SPOILER_{image_file.filename}"
-
-        time_taken: datetime.timedelta = datetime.datetime.now() - start
-
-        view: discord.ui.View = ImagineButtonView()
-        embed: discord.Embed = await generate_pollinate_embed(
-            interaction, private, dic, time_taken
-        )
-
-        if private:
-            await interaction.followup.send(embed=embed, ephemeral=True)
-        else:
-            await interaction.followup.send(embed=embed, view=view, file=image_file)
+        try:
+            dic, image = await generate_image(
+                prompt, width, height, model, safe, cached, nologo, enhance, private
+            )
+            time_taken = (datetime.datetime.now() - start).total_seconds()
+            discord_logger.log_image_generation(
+                action="generate_complete",
+                model=model or "default",
+                dimensions={"width": width, "height": height},
+                generation_time=time_taken,
+                status="success",
+                cached=cached,
+            )
+            image_file = discord.File(image, filename="image.png")
+            if dic["nsfw"]:
+                image_file.filename = f"SPOILER_{image_file.filename}"
+            time_taken_delta: datetime.timedelta = datetime.datetime.now() - start
+            view: discord.ui.View = ImagineButtonView()
+            embed: SafeEmbed = await generate_pollinate_embed(
+                interaction, private, dic, time_taken_delta
+            )
+            if private:
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                await interaction.followup.send(embed=embed, view=view, file=image_file)
+        except Exception as e:
+            discord_logger.log_error(
+                error_type="generation_error",
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={
+                    "prompt": prompt,
+                    "model": model,
+                    "width": width,
+                    "height": height,
+                    "user_id": interaction.user.id,
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
+            )
+            raise
         return
 
     @imagine_command.error
@@ -253,7 +357,16 @@ class Imagine(commands.Cog):
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ) -> None:
         if isinstance(error, app_commands.CommandOnCooldown):
-            embed: discord.Embed = await generate_error_message(
+            discord_logger.log_error(
+                error_type="cooldown",
+                error_message=str(error),
+                context={
+                    "command": "pollinate",
+                    "user_id": interaction.user.id,
+                    "retry_after": error.retry_after,
+                },
+            )
+            embed: SafeEmbed = await generate_error_message(
                 interaction,
                 error,
                 cooldown_configuration=[
@@ -261,29 +374,46 @@ class Imagine(commands.Cog):
                 ],
             )
             return await interaction.response.send_message(embed=embed, ephemeral=True)
-
         elif isinstance(error, PromptTooLongError):
+            discord_logger.log_error(
+                error_type="validation_error",
+                error_message=str(error),
+                context={"command": "pollinate", "error_type": "prompt_too_long"},
+            )
             await send_error_embed(
                 interaction,
                 "Prompt Too Long",
                 f"```\n{str(error)}\n```",
             )
-
         elif isinstance(error, DimensionTooSmallError):
+            discord_logger.log_error(
+                error_type="validation_error",
+                error_message=str(error),
+                context={"command": "pollinate", "error_type": "dimension_too_small"},
+            )
             await send_error_embed(
                 interaction,
                 "Dimensions Too Small",
                 f"```\n{str(error)}\n```",
             )
-
         elif isinstance(error, APIError):
+            discord_logger.log_error(
+                error_type="api_error",
+                error_message=str(error),
+                context={"command": "pollinate"},
+            )
             await send_error_embed(
                 interaction,
                 "Couldn't Generate the Requested Image 😔",
                 f"```\n{str(error)}\n```",
             )
-
         else:
+            discord_logger.log_error(
+                error_type="unexpected_error",
+                error_message=str(error),
+                traceback=traceback.format_exception_only(type(error), error),
+                context={"command": "pollinate", "user_id": interaction.user.id},
+            )
             await send_error_embed(
                 interaction,
                 "An unexpected error occurred",
@@ -293,4 +423,6 @@ class Imagine(commands.Cog):
 
 async def setup(bot) -> None:
     await bot.add_cog(Imagine(bot))
-    print("Imagine cog loaded")
+    discord_logger.log_bot_event(
+        action="cog_setup", status="success", details={"cog": "Imagine"}
+    )
