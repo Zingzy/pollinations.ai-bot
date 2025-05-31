@@ -203,9 +203,8 @@ class Multi_pollinate(commands.Cog):
                     (datetime.datetime.now() - sub_start_time).total_seconds(), 2
                 )
                 image_file = discord.File(image, f"image_{i}.png")
-                embed: SafeEmbed = SafeEmbed().set_image(
-                    url=f"attachment://image_{i}.png"
-                )
+                embed: SafeEmbed = SafeEmbed()
+                embed.set_image(url=f"attachment://image_{i}.png")
 
                 await update_progress()
                 return (i, dic["url"], image_file, embed, time_taken_seconds, None)
