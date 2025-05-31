@@ -47,6 +47,7 @@ commands_: dict[str, str] = {
     f"</help:{config.bot.commands['help_id']}> ❓": "Displays this",
     f"</invite:{config.bot.commands['invite_id']}> 📨": "Invite the bot to your server",
     f"</about:{config.bot.commands['about_id']}> ℹ️": "About the bot",
+    f"</models:{config.bot.commands['models_id']}> 🤖": "View all available AI models for image generation",
 }
 
 
@@ -424,6 +425,71 @@ async def about(ctx) -> None:
     embed.set_footer(
         text="Bot created by Zngzy",
         icon_url=config.ui.bot_creator_avatar,
+    )
+
+    await ctx.send(embed=embed)
+
+
+@bot.hybrid_command(name="models", description="View all available AI models")
+async def models(ctx) -> None:
+    user: discord.User | None = bot.get_user(int(config.bot.bot_id))
+    try:
+        profilePicture: str = user.avatar.url
+    except AttributeError:
+        profilePicture = config.bot.avatar_url
+
+    embed = discord.Embed(
+        title="🤖 Available AI Models",
+        description="Here are all the AI models currently available for image generation:",
+        color=int(config.ui.colors.success, 16),
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
+    )
+
+    embed.set_thumbnail(url=profilePicture)
+    
+    if config.MODELS:
+        # Create a formatted list of models
+        models_list = []
+        for i, model in enumerate(config.MODELS, 1):
+            # Highlight the fallback model
+            if model == config.image_generation.fallback_model:
+                models_list.append(f"**{i}. {model}** ⭐ *(default)*")
+            else:
+                models_list.append(f"{i}. {model}")
+        
+        # Split models into chunks to avoid hitting Discord's field value limit
+        chunk_size = 10
+        model_chunks = [models_list[i:i + chunk_size] for i in range(0, len(models_list), chunk_size)]
+        
+        for i, chunk in enumerate(model_chunks):
+            field_name = "Models" if i == 0 else f"Models (continued {i + 1})"
+            embed.add_field(
+                name=field_name,
+                value="\n".join(chunk),
+                inline=False
+            )
+    else:
+        embed.add_field(
+            name="⚠️ No Models Available",
+            value=f"Currently using fallback model: **{config.image_generation.fallback_model}**",
+            inline=False
+        )
+
+    embed.add_field(
+        name="📊 Statistics",
+        value=f"```Total Models: {len(config.MODELS)}\nRefresh Interval: {config.api.models_refresh_interval_minutes} minutes\nFallback Model: {config.image_generation.fallback_model}```",
+        inline=False
+    )
+
+    embed.add_field(
+        name="💡 How to Use",
+        value=f"Use these models with </pollinate:{config.bot.commands['pollinate_id']}> or </random:{config.bot.commands['random_id']}> commands by selecting them from the model dropdown.",
+        inline=False
+    )
+
+    embed.set_footer(
+        text=f"Information requested by: {ctx.author.name} • Models last updated",
+        icon_url=ctx.author.avatar.url if ctx.author.avatar else ctx.author.default_avatar.url,
     )
 
     await ctx.send(embed=embed)
