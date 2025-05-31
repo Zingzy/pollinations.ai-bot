@@ -6,11 +6,16 @@ import traceback
 
 from config import config
 from utils.image_gen_utils import generate_image, validate_dimensions, validate_prompt
-from utils.embed_utils import generate_pollinate_embed, generate_error_message, SafeEmbed
+from utils.embed_utils import (
+    generate_pollinate_embed,
+    generate_error_message,
+    SafeEmbed,
+)
 from utils.pollinate_utils import parse_url
 from utils.error_handler import send_error_embed
 from utils.logger import discord_logger
 from exceptions import DimensionTooSmallError, PromptTooLongError, APIError
+
 
 class ImagineButtonView(discord.ui.View):
     def __init__(self) -> None:
@@ -39,15 +44,18 @@ class ImagineButtonView(discord.ui.View):
         original_url: str | None = interaction.message.embeds[0].url
         prompt: str = interaction_data["fields"][0]["value"][3:-3]
         data: dict = parse_url(original_url)
-        
+
         try:
             discord_logger.log_image_generation(
                 action="regenerate_start",
                 model=data.get("model", "unknown"),
-                dimensions={"width": data.get("width", 0), "height": data.get("height", 0)},
+                dimensions={
+                    "width": data.get("width", 0),
+                    "height": data.get("height", 0),
+                },
                 generation_time=0,
                 status="started",
-                cached=data.get("cached", False)
+                cached=data.get("cached", False),
             )
 
             dic, image = await generate_image(prompt=prompt, **data)
@@ -55,10 +63,13 @@ class ImagineButtonView(discord.ui.View):
             discord_logger.log_image_generation(
                 action="regenerate_complete",
                 model=data.get("model", "unknown"),
-                dimensions={"width": data.get("width", 0), "height": data.get("height", 0)},
+                dimensions={
+                    "width": data.get("width", 0),
+                    "height": data.get("height", 0),
+                },
                 generation_time=time_taken,
                 status="success",
-                cached=data.get("cached", False)
+                cached=data.get("cached", False),
             )
         except APIError as e:
             discord_logger.log_error(
@@ -67,8 +78,8 @@ class ImagineButtonView(discord.ui.View):
                 context={
                     "prompt": prompt,
                     "model": data.get("model", "unknown"),
-                    "action": "regenerate"
-                }
+                    "action": "regenerate",
+                },
             )
             await interaction.followup.send(
                 embed=SafeEmbed(
@@ -87,8 +98,8 @@ class ImagineButtonView(discord.ui.View):
                 context={
                     "prompt": prompt,
                     "model": data.get("model", "unknown"),
-                    "action": "regenerate"
-                }
+                    "action": "regenerate",
+                },
             )
             await interaction.followup.send(
                 embed=SafeEmbed(
@@ -133,8 +144,8 @@ class ImagineButtonView(discord.ui.View):
                     context={
                         "user_id": interaction.user.id,
                         "author_id": author_id,
-                        "guild_id": interaction.guild_id if interaction.guild else None
-                    }
+                        "guild_id": interaction.guild_id if interaction.guild else None,
+                    },
                 )
                 await interaction.response.send_message(
                     embed=SafeEmbed(
@@ -152,8 +163,8 @@ class ImagineButtonView(discord.ui.View):
                 status="success",
                 details={
                     "user_id": interaction.user.id,
-                    "guild_id": interaction.guild_id if interaction.guild else None
-                }
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
             )
             return
         except Exception as e:
@@ -163,8 +174,8 @@ class ImagineButtonView(discord.ui.View):
                 traceback=traceback.format_exc(),
                 context={
                     "user_id": interaction.user.id,
-                    "guild_id": interaction.guild_id if interaction.guild else None
-                }
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
             )
             await interaction.response.send_message(
                 embed=SafeEmbed(
@@ -203,11 +214,7 @@ class ImagineButtonView(discord.ui.View):
             discord_logger.log_bot_event(
                 action="image_bookmark",
                 status="success",
-                details={
-                    "user_id": interaction.user.id,
-                    "prompt": prompt,
-                    "url": url
-                }
+                details={"user_id": interaction.user.id, "prompt": prompt, "url": url},
             )
             await interaction.response.send_message(
                 embed=SafeEmbed(
@@ -225,8 +232,8 @@ class ImagineButtonView(discord.ui.View):
                 traceback=traceback.format_exc(),
                 context={
                     "user_id": interaction.user.id,
-                    "guild_id": interaction.guild_id if interaction.guild else None
-                }
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
             )
             await interaction.response.send_message(
                 embed=SafeEmbed(
@@ -238,6 +245,7 @@ class ImagineButtonView(discord.ui.View):
             )
             return
 
+
 class Imagine(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
@@ -247,9 +255,7 @@ class Imagine(commands.Cog):
         await self.bot.wait_until_ready()
         self.bot.add_view(ImagineButtonView())
         discord_logger.log_bot_event(
-            action="cog_load",
-            status="success",
-            details={"cog": "Imagine"}
+            action="cog_load", status="success", details={"cog": "Imagine"}
         )
 
     @app_commands.command(name="pollinate", description="Generate AI Images")
@@ -302,7 +308,7 @@ class Imagine(commands.Cog):
             dimensions={"width": width, "height": height},
             generation_time=0,
             status="started",
-            cached=cached
+            cached=cached,
         )
         try:
             dic, image = await generate_image(
@@ -315,7 +321,7 @@ class Imagine(commands.Cog):
                 dimensions={"width": width, "height": height},
                 generation_time=time_taken,
                 status="success",
-                cached=cached
+                cached=cached,
             )
             image_file = discord.File(image, filename="image.png")
             if dic["nsfw"]:
@@ -340,8 +346,8 @@ class Imagine(commands.Cog):
                     "width": width,
                     "height": height,
                     "user_id": interaction.user.id,
-                    "guild_id": interaction.guild_id if interaction.guild else None
-                }
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
             )
             raise
         return
@@ -357,8 +363,8 @@ class Imagine(commands.Cog):
                 context={
                     "command": "pollinate",
                     "user_id": interaction.user.id,
-                    "retry_after": error.retry_after
-                }
+                    "retry_after": error.retry_after,
+                },
             )
             embed: SafeEmbed = await generate_error_message(
                 interaction,
@@ -372,7 +378,7 @@ class Imagine(commands.Cog):
             discord_logger.log_error(
                 error_type="validation_error",
                 error_message=str(error),
-                context={"command": "pollinate", "error_type": "prompt_too_long"}
+                context={"command": "pollinate", "error_type": "prompt_too_long"},
             )
             await send_error_embed(
                 interaction,
@@ -383,7 +389,7 @@ class Imagine(commands.Cog):
             discord_logger.log_error(
                 error_type="validation_error",
                 error_message=str(error),
-                context={"command": "pollinate", "error_type": "dimension_too_small"}
+                context={"command": "pollinate", "error_type": "dimension_too_small"},
             )
             await send_error_embed(
                 interaction,
@@ -394,7 +400,7 @@ class Imagine(commands.Cog):
             discord_logger.log_error(
                 error_type="api_error",
                 error_message=str(error),
-                context={"command": "pollinate"}
+                context={"command": "pollinate"},
             )
             await send_error_embed(
                 interaction,
@@ -406,7 +412,7 @@ class Imagine(commands.Cog):
                 error_type="unexpected_error",
                 error_message=str(error),
                 traceback=traceback.format_exception_only(type(error), error),
-                context={"command": "pollinate", "user_id": interaction.user.id}
+                context={"command": "pollinate", "user_id": interaction.user.id},
             )
             await send_error_embed(
                 interaction,
@@ -414,10 +420,9 @@ class Imagine(commands.Cog):
                 f"```\n{str(error)}\n```",
             )
 
+
 async def setup(bot) -> None:
     await bot.add_cog(Imagine(bot))
     discord_logger.log_bot_event(
-        action="cog_setup",
-        status="success",
-        details={"cog": "Imagine"}
+        action="cog_setup", status="success", details={"cog": "Imagine"}
     )

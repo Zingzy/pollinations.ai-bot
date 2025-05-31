@@ -5,10 +5,9 @@ import discord
 from discord.ext import commands, tasks
 import statistics
 import time
-import sys
 import aiohttp
 from config import config
-from utils.logger import discord_logger, logger
+from utils.logger import discord_logger
 import traceback
 
 load_dotenv(override=True)
@@ -61,6 +60,7 @@ class pollinationsBot(commands.Bot):
             command_prefix=config.bot.command_prefix, intents=intents, help_command=None
         )
         self.synced = False
+
     @tasks.loop(minutes=config.api.models_refresh_interval_minutes)
     async def refresh_models(self) -> None:
         try:
@@ -72,7 +72,7 @@ class pollinationsBot(commands.Bot):
                         discord_logger.log_bot_event(
                             action="model_refresh",
                             status="success",
-                            details=f"Models refreshed: {config.MODELS}"
+                            details=f"Models refreshed: {config.MODELS}",
                         )
         except Exception as e:
             config.MODELS = [config.image_generation.fallback_model]
@@ -80,7 +80,7 @@ class pollinationsBot(commands.Bot):
                 error_type="model_refresh_error",
                 error_message=str(e),
                 traceback=None,
-                context={"fallback_model": config.image_generation.fallback_model}
+                context={"fallback_model": config.image_generation.fallback_model},
             )
 
     async def on_ready(self) -> None:
@@ -107,8 +107,8 @@ class pollinationsBot(commands.Bot):
             details={
                 "user": f"{self.user.name} (ID: {self.user.id})",
                 "guilds": len(self.guilds),
-                "models": config.MODELS
-            }
+                "models": config.MODELS,
+            },
         )
 
 
@@ -140,12 +140,12 @@ async def on_message(message) -> None:
         discord_logger.log_error(
             error_type="unhandled_command_error",
             error_message=str(e),
-            traceback=''.join(traceback.format_exception(type(e), e, e.__traceback__)),
+            traceback="".join(traceback.format_exception(type(e), e, e.__traceback__)),
             context={
                 "user_id": message.author.id,
                 "guild_id": message.guild.id if message.guild else None,
-                "message_content": message.content
-            }
+                "message_content": message.content,
+            },
         )
 
 
@@ -171,9 +171,7 @@ async def on_command_completion(ctx) -> None:
 
     # Log command completion
     discord_logger.log_command(
-        command_name=ctx.command.name,
-        execution_time=latency,
-        status="success"
+        command_name=ctx.command.name, execution_time=latency, status="success"
     )
 
 
@@ -186,8 +184,8 @@ async def on_command_error(ctx, error):
             context={
                 "command": ctx.command.name if ctx.command else "Unknown",
                 "retry_after": error.retry_after,
-                "user_id": ctx.author.id
-            }
+                "user_id": ctx.author.id,
+            },
         )
     elif isinstance(error, commands.MissingPermissions):
         discord_logger.log_error(
@@ -196,30 +194,31 @@ async def on_command_error(ctx, error):
             context={
                 "command": ctx.command.name if ctx.command else "Unknown",
                 "user_id": ctx.author.id,
-                "missing_perms": [str(p) for p in error.missing_permissions]
-            }
+                "missing_perms": [str(p) for p in error.missing_permissions],
+            },
         )
     else:
         discord_logger.log_error(
             error_type="command_error",
             error_message=str(error),
-            traceback=''.join(traceback.format_exception(type(error), error, error.__traceback__)),
+            traceback="".join(
+                traceback.format_exception(type(error), error, error.__traceback__)
+            ),
             context={
                 "command": ctx.command.name if ctx.command else "Unknown",
                 "user_id": ctx.author.id,
-                "guild_id": ctx.guild.id if ctx.guild else None
-            }
+                "guild_id": ctx.guild.id if ctx.guild else None,
+            },
         )
 
     # Send error message to user
     await ctx.send(
         embed=discord.Embed(
-            title="Error",
-            description=str(error),
-            color=int(config.ui.colors.error, 16)
+            title="Error", description=str(error), color=int(config.ui.colors.error, 16)
         ),
-        ephemeral=True
+        ephemeral=True,
     )
+
 
 @bot.before_invoke
 async def before_invoke(ctx) -> None:
@@ -263,7 +262,9 @@ async def ping(ctx) -> None:
             text=f"Information requested by: {ctx.author.name}",
             icon_url=ctx.author.avatar.url,
         )
-        embed.set_thumbnail(url="https://uploads.poxipage.com/7q5iw7dwl5jc3zdjaergjhpat27tws8bkr9fgy45_938843265627717703-webp")
+        embed.set_thumbnail(
+            url="https://uploads.poxipage.com/7q5iw7dwl5jc3zdjaergjhpat27tws8bkr9fgy45_938843265627717703-webp"
+        )
 
         await message.edit(embed=embed)
 
@@ -272,13 +273,13 @@ async def ping(ctx) -> None:
             error_type="command_error",
             error_message=str(e),
             traceback=None,
-            context={"command": "ping"}
+            context={"command": "ping"},
         )
         await ctx.send(
             embed=discord.Embed(
                 title="Error",
                 description="An error occurred while processing the command.",
-                color=int(config.ui.colors.error, 16)
+                color=int(config.ui.colors.error, 16),
             )
         )
 

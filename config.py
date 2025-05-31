@@ -110,14 +110,16 @@ def resolve_env_variables(data: Any) -> Any:
         return [resolve_env_variables(item) for item in data]
     elif isinstance(data, str):
         # Match ${VARIABLE_NAME} pattern
-        pattern = r'\$\{([^}]+)\}'
+        pattern = r"\$\{([^}]+)\}"
         matches = re.findall(pattern, data)
         for match in matches:
             env_value = os.getenv(match)
             if env_value is not None:
-                data = data.replace(f'${{{match}}}', env_value)
+                data = data.replace(f"${{{match}}}", env_value)
             else:
-                logger.warning(f"Environment variable '{match}' not found, keeping original value")
+                logger.warning(
+                    f"Environment variable '{match}' not found, keeping original value"
+                )
         return data
     else:
         return data
@@ -131,7 +133,7 @@ def load_config(path: str = "config.toml") -> Config:
 
     with open(config_path, "rb") as f:
         config_data = tomli.load(f)
-    
+
     # Resolve environment variables
     config_data = resolve_env_variables(config_data)
 

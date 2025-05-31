@@ -1,7 +1,6 @@
 import discord
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 import datetime
-from discord import Embed
 import random
 from config import config
 
@@ -12,7 +11,7 @@ class SafeEmbed(discord.Embed):
     """
     A wrapper around discord.Embed that automatically handles Discord's character limits
     to prevent 400 Bad Request errors.
-    
+
     Discord Limits:
     - Title: 256 characters
     - Description: 4096 characters
@@ -22,48 +21,54 @@ class SafeEmbed(discord.Embed):
     - Author name: 256 characters
     - Total embed: 6000 characters
     """
-    
+
     def __init__(self, **kwargs):
         # Truncate title if needed
-        if 'title' in kwargs and kwargs['title']:
-            kwargs['title'] = self._truncate_text(kwargs['title'], 256)
-        
+        if "title" in kwargs and kwargs["title"]:
+            kwargs["title"] = self._truncate_text(kwargs["title"], 256)
+
         # Truncate description if needed
-        if 'description' in kwargs and kwargs['description']:
-            kwargs['description'] = self._truncate_text(kwargs['description'], 4096)
-            
+        if "description" in kwargs and kwargs["description"]:
+            kwargs["description"] = self._truncate_text(kwargs["description"], 4096)
+
         super().__init__(**kwargs)
-    
+
     @staticmethod
     def _truncate_text(text: str, max_length: int, suffix: str = "...") -> str:
         """Truncate text to fit within Discord's character limits"""
         if not text:
             return text
-        
+
         text = str(text)
         if len(text) <= max_length:
             return text
-        
+
         # Check if text is wrapped in code blocks
         is_code_block = text.startswith("```") and text.endswith("```")
-        
+
         if is_code_block:
             # For code blocks, we need to preserve the ``` at both ends
             # Remove the opening and closing ``` temporarily
             inner_text = text[3:-3]
-            
+
             # Calculate available space for inner content
             # We need space for: opening ```, closing ```, and suffix
-            available_space = max_length - 6 - len(suffix)  # 6 = 3 for opening + 3 for closing
-            
+            available_space = (
+                max_length - 6 - len(suffix)
+            )  # 6 = 3 for opening + 3 for closing
+
             if available_space <= 0:
                 # If we can't fit anything, just return truncated original
                 truncate_length = max_length - len(suffix)
-                return text[:truncate_length] + suffix if truncate_length > 0 else suffix[:max_length]
-            
+                return (
+                    text[:truncate_length] + suffix
+                    if truncate_length > 0
+                    else suffix[:max_length]
+                )
+
             if len(inner_text) <= available_space:
                 return text  # No truncation needed
-            
+
             # Truncate the inner content and rebuild
             truncated_inner = inner_text[:available_space] + suffix
             return f"```{truncated_inner}```"
@@ -72,53 +77,61 @@ class SafeEmbed(discord.Embed):
             truncate_length = max_length - len(suffix)
             if truncate_length <= 0:
                 return suffix[:max_length]
-            
+
             return text[:truncate_length] + suffix
-    
-    def add_field(self, *, name: str, value: str, inline: bool = True) -> 'SafeEmbed':
+
+    def add_field(self, *, name: str, value: str, inline: bool = True) -> "SafeEmbed":
         """Add a field with automatic truncation"""
         safe_name = self._truncate_text(name, 256)
         safe_value = self._truncate_text(value, 1024)
-        
+
         super().add_field(name=safe_name, value=safe_value, inline=inline)
         return self
-    
-    def set_footer(self, *, text: Optional[str] = None, icon_url: Optional[str] = None) -> 'SafeEmbed':
+
+    def set_footer(
+        self, *, text: Optional[str] = None, icon_url: Optional[str] = None
+    ) -> "SafeEmbed":
         """Set footer with automatic text truncation"""
         if text:
             text = self._truncate_text(text, 2048)
-        
+
         super().set_footer(text=text, icon_url=icon_url)
         return self
-    
-    def set_author(self, *, name: str, url: Optional[str] = None, icon_url: Optional[str] = None) -> 'SafeEmbed':
+
+    def set_author(
+        self, *, name: str, url: Optional[str] = None, icon_url: Optional[str] = None
+    ) -> "SafeEmbed":
         """Set author with automatic name truncation"""
         safe_name = self._truncate_text(name, 256)
-        
+
         super().set_author(name=safe_name, url=url, icon_url=icon_url)
         return self
-    
-    def insert_field_at(self, index: int, *, name: str, value: str, inline: bool = True) -> 'SafeEmbed':
+
+    def insert_field_at(
+        self, index: int, *, name: str, value: str, inline: bool = True
+    ) -> "SafeEmbed":
         """Insert field at index with automatic truncation"""
         safe_name = self._truncate_text(name, 256)
         safe_value = self._truncate_text(value, 1024)
-        
+
         super().insert_field_at(index, name=safe_name, value=safe_value, inline=inline)
         return self
-    
-    def set_field_at(self, index: int, *, name: str, value: str, inline: bool = True) -> 'SafeEmbed':
+
+    def set_field_at(
+        self, index: int, *, name: str, value: str, inline: bool = True
+    ) -> "SafeEmbed":
         """Set field at index with automatic truncation"""
         safe_name = self._truncate_text(name, 256)
         safe_value = self._truncate_text(value, 1024)
-        
+
         super().set_field_at(index, name=safe_name, value=safe_value, inline=inline)
         return self
-    
+
     @property
     def total_length(self) -> int:
         """Calculate total character count of the embed"""
         total = 0
-        
+
         if self.title:
             total += len(self.title)
         if self.description:
@@ -127,12 +140,12 @@ class SafeEmbed(discord.Embed):
             total += len(self.footer.text)
         if self.author and self.author.name:
             total += len(self.author.name)
-        
+
         for field in self.fields:
             total += len(field.name) + len(field.value)
-        
+
         return total
-    
+
     def is_within_limits(self) -> bool:
         """Check if embed is within Discord's 6000 character total limit"""
         return self.total_length <= 6000

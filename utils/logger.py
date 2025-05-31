@@ -10,15 +10,16 @@ from loguru import logger
 LOGS_DIR = Path("logs")
 LOGS_DIR.mkdir(exist_ok=True)
 
+
 class DiscordLogger:
     """Custom logger for Discord.py integration with Loguru"""
-    
+
     @staticmethod
     def setup_logging():
         """Configure the logging system"""
         # Remove default logger
         logger.remove()
-        
+
         # Configure log format with time, level, and location
         log_format = (
             "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
@@ -36,7 +37,7 @@ class DiscordLogger:
             rotation="00:00",  # Rotate at midnight
             retention="30 days",
             compression="zip",
-            enqueue=True
+            enqueue=True,
         )
 
         # Error log file
@@ -47,21 +48,16 @@ class DiscordLogger:
             rotation="100 MB",
             retention="90 days",
             compression="zip",
-            enqueue=True
+            enqueue=True,
         )
 
         # Console output
-        logger.add(
-            sys.stdout,
-            format=log_format,
-            level="INFO",
-            colorize=True
-        )
+        logger.add(sys.stdout, format=log_format, level="INFO", colorize=True)
 
         # Intercept discord.py logging
         logging.getLogger("discord").setLevel(logging.INFO)
         logging.getLogger("discord.http").setLevel(logging.INFO)
-        
+
         # Create handler for discord.py logs
         class InterceptHandler(logging.Handler):
             def emit(self, record):
@@ -98,8 +94,8 @@ class DiscordLogger:
                 "action": action,
                 "status": status,
                 "details": details,
-                "timestamp": datetime.utcnow().isoformat()
-            }
+                "timestamp": datetime.utcnow().isoformat(),
+            },
         }
         logger.info(f"Bot Event: {action} | {DiscordLogger._format_metadata(metadata)}")
 
@@ -108,7 +104,7 @@ class DiscordLogger:
         command_name: str,
         execution_time: float,
         status: str,
-        error_type: Optional[str] = None
+        error_type: Optional[str] = None,
     ):
         """Log command execution"""
         metadata = {
@@ -117,10 +113,12 @@ class DiscordLogger:
                 "command_name": command_name,
                 "execution_time": execution_time,
                 "status": status,
-                "error_type": error_type
-            }
+                "error_type": error_type,
+            },
         }
-        logger.info(f"Command: {command_name} | {DiscordLogger._format_metadata(metadata)}")
+        logger.info(
+            f"Command: {command_name} | {DiscordLogger._format_metadata(metadata)}"
+        )
 
     @staticmethod
     def log_image_generation(
@@ -130,7 +128,7 @@ class DiscordLogger:
         generation_time: float,
         status: str,
         error_type: Optional[str] = None,
-        cached: bool = False
+        cached: bool = False,
     ):
         """Log image generation events"""
         metadata = {
@@ -142,17 +140,19 @@ class DiscordLogger:
                 "generation_time": generation_time,
                 "status": status,
                 "error_type": error_type,
-                "cached": cached
-            }
+                "cached": cached,
+            },
         }
-        logger.info(f"Image Generation: {action} | {DiscordLogger._format_metadata(metadata)}")
+        logger.info(
+            f"Image Generation: {action} | {DiscordLogger._format_metadata(metadata)}"
+        )
 
     @staticmethod
     def log_error(
         error_type: str,
         error_message: str,
         traceback: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ):
         """Log error events"""
         metadata = {
@@ -161,10 +161,13 @@ class DiscordLogger:
                 "error_type": error_type,
                 "error_message": error_message,
                 "traceback": traceback,
-                "context": context
-            }
+                "context": context,
+            },
         }
-        logger.error(f"Error: {error_type} | {DiscordLogger._format_metadata(metadata)}")
+        logger.error(
+            f"Error: {error_type} | {DiscordLogger._format_metadata(metadata)}"
+        )
+
 
 # Initialize logging when module is imported
 DiscordLogger.setup_logging()
@@ -173,4 +176,4 @@ DiscordLogger.setup_logging()
 discord_logger = DiscordLogger()
 
 # Export logger for use in other modules
-__all__ = ['discord_logger', 'logger']
+__all__ = ["discord_logger", "logger"]

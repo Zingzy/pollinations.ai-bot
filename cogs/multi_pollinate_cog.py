@@ -91,7 +91,7 @@ class multiImagineButtonView(discord.ui.View):
                 error_type="delete_error",
                 error_message=str(e),
                 traceback=traceback.format_exc(),
-                context={"user_id": interaction.user.id}
+                context={"user_id": interaction.user.id},
             )
             await interaction.response.send_message(
                 embed=SafeEmbed(
@@ -113,9 +113,7 @@ class Multi_pollinate(commands.Cog):
         await self.bot.wait_until_ready()
         self.bot.add_view(multiImagineButtonView())
         discord_logger.log_bot_event(
-            action="cog_load",
-            status="success",
-            details={"cog": "Multi_pollinate"}
+            action="cog_load", status="success", details={"cog": "Multi_pollinate"}
         )
 
     async def get_info(interaction: discord.Interaction, index: int) -> None:

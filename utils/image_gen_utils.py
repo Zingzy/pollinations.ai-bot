@@ -3,7 +3,6 @@ import aiohttp
 import io
 from utils.logger import logger
 from urllib.parse import quote
-import sys
 import json
 from PIL import Image
 from exceptions import PromptTooLongError, DimensionTooSmallError, APIError
@@ -74,7 +73,9 @@ async def generate_image(
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, allow_redirects=True, headers=headers) as response:
+            async with session.get(
+                url, allow_redirects=True, headers=headers
+            ) as response:
                 if response.status >= 500:
                     raise APIError(
                         f"Server error occurred while generating image with status code: {response.status}\nPlease try again later"
@@ -129,7 +130,7 @@ def _extract_user_comment(image_bytes):
     try:
         exif = image.info["exif"].decode("latin-1", errors="ignore")
         user_comment = json.loads(exif[exif.find("{") : exif.rfind("}") + 1])
-    except Exception as e:
+    except Exception:
         logger.exception("Error extracting user comment from image EXIF data")
         return "No user comment found."
 
