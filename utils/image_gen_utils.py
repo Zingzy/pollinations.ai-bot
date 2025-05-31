@@ -1,6 +1,7 @@
 import random
 import aiohttp
 import io
+from utils.logger import logger
 from urllib.parse import quote
 import sys
 import json
@@ -36,9 +37,8 @@ async def generate_image(
     private: bool = config.image_generation.defaults.private,
     **kwargs,
 ):
-    print(
-        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, safe: {safe}, cached: {cached}, nologo: {nologo}, enhance: {enhance}, model: {model}",
-        file=sys.stderr,
+    logger.info(
+        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, safe: {safe}, cached: {cached}, nologo: {nologo}, enhance: {enhance}, model: {model}"
     )
 
     seed = str(random.randint(0, 1000000000))
@@ -68,9 +68,13 @@ async def generate_image(
 
     dic["seed"] = None if cached else seed
 
+    headers = {
+        "Authorization": f"Bearer {config.api.api_key}",
+    }
+
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, allow_redirects=True) as response:
+            async with session.get(url, allow_redirects=True, headers=headers) as response:
                 if response.status >= 500:
                     raise APIError(
                         f"Server error occurred while generating image with status code: {response.status}\nPlease try again later"
@@ -125,7 +129,8 @@ def _extract_user_comment(image_bytes):
     try:
         exif = image.info["exif"].decode("latin-1", errors="ignore")
         user_comment = json.loads(exif[exif.find("{") : exif.rfind("}") + 1])
-    except Exception:
+    except Exception as e:
+        logger.exception("Error extracting user comment from image EXIF data")
         return "No user comment found."
 
     return user_comment if user_comment else "No user comment found."

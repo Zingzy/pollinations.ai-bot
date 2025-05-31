@@ -5,9 +5,11 @@ annotated-types==0.7.0
 attrs==24.3.0
 certifi==2024.12.14
 charset-normalizer==3.4.1
+colorama==0.4.6
 discord.py==2.4.0
 frozenlist==1.5.0
 idna==3.10
+loguru==0.7.3
 multidict==6.1.0
 pillow==11.0.0
 propcache==0.2.1
@@ -18,4 +20,5 @@ requests==2.32.3
 tomli==2.2.1
 typing_extensions==4.12.2
 urllib3==2.3.0
+win32_setctime==1.2.0
 yarl==1.18.3

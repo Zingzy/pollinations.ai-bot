@@ -9,6 +9,7 @@ from config import config
 from utils.embed_utils import generate_error_message
 from utils.image_gen_utils import generate_image, validate_dimensions, validate_prompt
 from utils.error_handler import send_error_embed
+from utils.logger import discord_logger
 from exceptions import (
     NoImagesGeneratedError,
     ImageGenerationError,
@@ -86,7 +87,12 @@ class multiImagineButtonView(discord.ui.View):
             return await interaction.message.delete()
 
         except Exception as e:
-            print(e, "\n", traceback.format_exc())
+            discord_logger.log_error(
+                error_type="delete_error",
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={"user_id": interaction.user.id}
+            )
             await interaction.response.send_message(
                 embed=discord.Embed(
                     title="Error Deleting the Image",
@@ -106,6 +112,11 @@ class Multi_pollinate(commands.Cog):
     async def cog_load(self) -> None:
         await self.bot.wait_until_ready()
         self.bot.add_view(multiImagineButtonView())
+        discord_logger.log_bot_event(
+            action="cog_load",
+            status="success",
+            details={"cog": "Multi_pollinate"}
+        )
 
     async def get_info(interaction: discord.Interaction, index: int) -> None:
         return

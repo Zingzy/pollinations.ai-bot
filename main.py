@@ -8,6 +8,8 @@ import time
 import sys
 import aiohttp
 from config import config
+from utils.logger import discord_logger, logger
+import traceback
 
 load_dotenv(override=True)
 
@@ -59,7 +61,6 @@ class pollinationsBot(commands.Bot):
             command_prefix=config.bot.command_prefix, intents=intents, help_command=None
         )
         self.synced = False
-
     @tasks.loop(minutes=config.api.models_refresh_interval_minutes)
     async def refresh_models(self) -> None:
         try:
@@ -68,10 +69,19 @@ class pollinationsBot(commands.Bot):
                     if response.ok:
                         config.MODELS.clear()
                         config.MODELS.extend(await response.json())
-                        print(f"Models refreshed: {config.MODELS}")
+                        discord_logger.log_bot_event(
+                            action="model_refresh",
+                            status="success",
+                            details=f"Models refreshed: {config.MODELS}"
+                        )
         except Exception as e:
             config.MODELS = [config.image_generation.fallback_model]
-            print(f"Error refreshing models: {e}", file=sys.stdout)
+            discord_logger.log_error(
+                error_type="model_refresh_error",
+                error_message=str(e),
+                traceback=None,
+                context={"fallback_model": config.image_generation.fallback_model}
+            )
 
     async def on_ready(self) -> None:
         await load()
@@ -91,9 +101,15 @@ class pollinationsBot(commands.Bot):
             self.refresh_models.start()
             self.synced = True
 
-        print(f"Logged in as {self.user.name} (ID: {self.user.id})")
-        print(f"Connected to {len(self.guilds)} guilds")
-        print(f"Available MODELS: {config.MODELS}")
+        discord_logger.log_bot_event(
+            action="startup",
+            status="success",
+            details={
+                "user": f"{self.user.name} (ID: {self.user.id})",
+                "guilds": len(self.guilds),
+                "models": config.MODELS
+            }
+        )
 
 
 bot = pollinationsBot()
@@ -118,7 +134,19 @@ async def on_message(message) -> None:
 
         await message.reply(embed=embed)
 
-    await bot.process_commands(message)
+    try:
+        await bot.process_commands(message)
+    except Exception as e:
+        discord_logger.log_error(
+            error_type="unhandled_command_error",
+            error_message=str(e),
+            traceback=''.join(traceback.format_exception(type(e), e, e.__traceback__)),
+            context={
+                "user_id": message.author.id,
+                "guild_id": message.guild.id if message.guild else None,
+                "message_content": message.content
+            }
+        )
 
 
 @bot.command()
@@ -141,6 +169,57 @@ async def on_command_completion(ctx) -> None:
     if len(latencies) > 10:
         latencies.pop(0)
 
+    # Log command completion
+    discord_logger.log_command(
+        command_name=ctx.command.name,
+        execution_time=latency,
+        status="success"
+    )
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        discord_logger.log_error(
+            error_type="cooldown",
+            error_message=str(error),
+            context={
+                "command": ctx.command.name if ctx.command else "Unknown",
+                "retry_after": error.retry_after,
+                "user_id": ctx.author.id
+            }
+        )
+    elif isinstance(error, commands.MissingPermissions):
+        discord_logger.log_error(
+            error_type="permission",
+            error_message=str(error),
+            context={
+                "command": ctx.command.name if ctx.command else "Unknown",
+                "user_id": ctx.author.id,
+                "missing_perms": [str(p) for p in error.missing_permissions]
+            }
+        )
+    else:
+        discord_logger.log_error(
+            error_type="command_error",
+            error_message=str(error),
+            traceback=''.join(traceback.format_exception(type(error), error, error.__traceback__)),
+            context={
+                "command": ctx.command.name if ctx.command else "Unknown",
+                "user_id": ctx.author.id,
+                "guild_id": ctx.guild.id if ctx.guild else None
+            }
+        )
+
+    # Send error message to user
+    await ctx.send(
+        embed=discord.Embed(
+            title="Error",
+            description=str(error),
+            color=int(config.ui.colors.error, 16)
+        ),
+        ephemeral=True
+    )
 
 @bot.before_invoke
 async def before_invoke(ctx) -> None:
@@ -184,12 +263,24 @@ async def ping(ctx) -> None:
             text=f"Information requested by: {ctx.author.name}",
             icon_url=ctx.author.avatar.url,
         )
-        embed.set_thumbnail(url=config.bot_avatar_url)
+        embed.set_thumbnail(url="https://uploads.poxipage.com/7q5iw7dwl5jc3zdjaergjhpat27tws8bkr9fgy45_938843265627717703-webp")
 
         await message.edit(embed=embed)
 
     except Exception as e:
-        print(e, file=sys.stdout)
+        discord_logger.log_error(
+            error_type="command_error",
+            error_message=str(e),
+            traceback=None,
+            context={"command": "ping"}
+        )
+        await ctx.send(
+            embed=discord.Embed(
+                title="Error",
+                description="An error occurred while processing the command.",
+                color=int(config.ui.colors.error, 16)
+            )
+        )
 
 
 @bot.hybrid_command(name="help", description="View the various commands of this server")
