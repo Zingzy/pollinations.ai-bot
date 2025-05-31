@@ -7,6 +7,29 @@ from config import config
 __all__: list[str] = ("generate_pollinate_embed", "generate_error_message", "SafeEmbed")
 
 
+# Decorator to handle argument truncation in SafeEmbed methods
+def _truncate_args(**limits):
+    """
+    Decorator that automatically truncates specified arguments to their Discord limits.
+    
+    Args:
+        **limits: Mapping of argument names to their maximum character limits
+        
+    Example:
+        @_truncate_args(name=256, value=1024)
+        def add_field(self, *, name: str, value: str, inline: bool = True):
+            ...
+    """
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            for arg, max_len in limits.items():
+                if arg in kwargs and kwargs[arg] is not None:
+                    kwargs[arg] = self._truncate_text(kwargs[arg], max_len)
+            return func(self, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
 class SafeEmbed(discord.Embed):
     """
     A wrapper around discord.Embed that automatically handles Discord's character limits
@@ -80,51 +103,42 @@ class SafeEmbed(discord.Embed):
 
             return text[:truncate_length] + suffix
 
+    @_truncate_args(name=256, value=1024)
     def add_field(self, *, name: str, value: str, inline: bool = True) -> "SafeEmbed":
         """Add a field with automatic truncation"""
-        safe_name = self._truncate_text(name, 256)
-        safe_value = self._truncate_text(value, 1024)
-
-        super().add_field(name=safe_name, value=safe_value, inline=inline)
+        super().add_field(name=name, value=value, inline=inline)
         return self
 
+    @_truncate_args(text=2048)
     def set_footer(
         self, *, text: Optional[str] = None, icon_url: Optional[str] = None
     ) -> "SafeEmbed":
         """Set footer with automatic text truncation"""
-        if text:
-            text = self._truncate_text(text, 2048)
-
         super().set_footer(text=text, icon_url=icon_url)
         return self
 
+    @_truncate_args(name=256)
     def set_author(
         self, *, name: str, url: Optional[str] = None, icon_url: Optional[str] = None
     ) -> "SafeEmbed":
         """Set author with automatic name truncation"""
-        safe_name = self._truncate_text(name, 256)
-
-        super().set_author(name=safe_name, url=url, icon_url=icon_url)
+        super().set_author(name=name, url=url, icon_url=icon_url)
         return self
 
+    @_truncate_args(name=256, value=1024)
     def insert_field_at(
         self, index: int, *, name: str, value: str, inline: bool = True
     ) -> "SafeEmbed":
         """Insert field at index with automatic truncation"""
-        safe_name = self._truncate_text(name, 256)
-        safe_value = self._truncate_text(value, 1024)
-
-        super().insert_field_at(index, name=safe_name, value=safe_value, inline=inline)
+        super().insert_field_at(index, name=name, value=value, inline=inline)
         return self
 
+    @_truncate_args(name=256, value=1024)
     def set_field_at(
         self, index: int, *, name: str, value: str, inline: bool = True
     ) -> "SafeEmbed":
         """Set field at index with automatic truncation"""
-        safe_name = self._truncate_text(name, 256)
-        safe_value = self._truncate_text(value, 1024)
-
-        super().set_field_at(index, name=safe_name, value=safe_value, inline=inline)
+        super().set_field_at(index, name=name, value=value, inline=inline)
         return self
 
     @property
