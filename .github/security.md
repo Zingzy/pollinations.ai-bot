@@ -6,7 +6,7 @@ Security fixes are applied to the latest version.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability, please report it to us by emailing [security@pollinations.ai](mailto:security@pollinations.ai). We will respond as quickly as possible to address the issue.
+If you discover a security vulnerability, please report it to us by emailing [hello@pollinations.ai](mailto:hello@pollinations.ai). We will respond as quickly as possible to address the issue.
 
 Please include the following details in your report:
 - A description of the vulnerability and its impact.
@@ -28,4 +28,4 @@ To ensure the security of your deployment, we recommend the following best pract
 
 ## Contact
 
-If you have any questions or need further assistance, please contact us at [security@pollinations.ai](mailto:security@pollinations.ai).
+If you have any questions or need further assistance, please contact us at [hello@pollinations.ai](mailto:hello@pollinations.ai).
