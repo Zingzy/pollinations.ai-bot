@@ -11,6 +11,14 @@ LOGS_DIR = Path("logs")
 LOGS_DIR.mkdir(exist_ok=True)
 
 
+# Helper function to create async aliases for sync methods
+def _async_alias(sync_fn):
+    """Create an async wrapper for a sync function"""
+    async def wrapper(*args, **kwargs):
+        return sync_fn(*args, **kwargs)
+    return staticmethod(wrapper)
+
+
 class DiscordLogger:
     """Custom logger for Discord.py integration with Loguru"""
 
@@ -106,13 +114,6 @@ class DiscordLogger:
         logger.info(f"Bot Event: {action} | {DiscordLogger._format_metadata(metadata)}")
 
     @staticmethod
-    async def log_bot_event_async(action: str, status: str, details: str = None):
-        """Log bot lifecycle events asynchronously"""
-        # Since loguru with enqueue=True is already async-safe, we can use the sync version
-        # But this method exists for explicit async contexts
-        DiscordLogger.log_bot_event(action, status, details)
-
-    @staticmethod
     def log_command(
         command_name: str,
         execution_time: float,
@@ -132,18 +133,6 @@ class DiscordLogger:
         logger.info(
             f"Command: {command_name} | {DiscordLogger._format_metadata(metadata)}"
         )
-
-    @staticmethod
-    async def log_command_async(
-        command_name: str,
-        execution_time: float,
-        status: str,
-        error_type: Optional[str] = None,
-    ):
-        """Log command execution asynchronously"""
-        # Since loguru with enqueue=True is already async-safe, we can use the sync version
-        # But this method exists for explicit async contexts
-        DiscordLogger.log_command(command_name, execution_time, status, error_type)
 
     @staticmethod
     def log_image_generation(
@@ -173,23 +162,6 @@ class DiscordLogger:
         )
 
     @staticmethod
-    async def log_image_generation_async(
-        action: str,
-        model: str,
-        dimensions: Dict[str, int],
-        generation_time: float,
-        status: str,
-        error_type: Optional[str] = None,
-        cached: bool = False,
-    ):
-        """Log image generation events asynchronously"""
-        # Since loguru with enqueue=True is already async-safe, we can use the sync version
-        # But this method exists for explicit async contexts
-        DiscordLogger.log_image_generation(
-            action, model, dimensions, generation_time, status, error_type, cached
-        )
-
-    @staticmethod
     def log_error(
         error_type: str,
         error_message: str,
@@ -210,17 +182,11 @@ class DiscordLogger:
             f"Error: {error_type} | {DiscordLogger._format_metadata(metadata)}"
         )
 
-    @staticmethod
-    async def log_error_async(
-        error_type: str,
-        error_message: str,
-        traceback: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-    ):
-        """Log error events asynchronously"""
-        # Since loguru with enqueue=True is already async-safe, we can use the sync version
-        # But this method exists for explicit async contexts
-        DiscordLogger.log_error(error_type, error_message, traceback, context)
+    # Async aliases - one-liners that replace 60+ lines of boilerplate
+    log_bot_event_async = _async_alias(log_bot_event)
+    log_command_async = _async_alias(log_command)
+    log_image_generation_async = _async_alias(log_image_generation)
+    log_error_async = _async_alias(log_error)
 
 
 # Initialize logging when module is imported
