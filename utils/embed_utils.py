@@ -11,22 +11,25 @@ __all__: list[str] = ("generate_pollinate_embed", "generate_error_message", "Saf
 def _truncate_args(**limits):
     """
     Decorator that automatically truncates specified arguments to their Discord limits.
-    
+
     Args:
         **limits: Mapping of argument names to their maximum character limits
-        
+
     Example:
         @_truncate_args(name=256, value=1024)
         def add_field(self, *, name: str, value: str, inline: bool = True):
             ...
     """
+
     def decorator(func):
         def wrapper(self, *args, **kwargs):
             for arg, max_len in limits.items():
                 if arg in kwargs and kwargs[arg] is not None:
                     kwargs[arg] = self._truncate_text(kwargs[arg], max_len)
             return func(self, *args, **kwargs)
+
         return wrapper
+
     return decorator
 
 

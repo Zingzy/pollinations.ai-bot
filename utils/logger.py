@@ -14,8 +14,10 @@ LOGS_DIR.mkdir(exist_ok=True)
 # Helper function to create async aliases for sync methods
 def _async_alias(sync_fn):
     """Create an async wrapper for a sync function"""
+
     async def wrapper(*args, **kwargs):
         return sync_fn(*args, **kwargs)
+
     return staticmethod(wrapper)
 
 
@@ -100,7 +102,9 @@ class DiscordLogger:
         return json.dumps(metadata, default=str)
 
     @staticmethod
-    def log_bot_event(action: str, status: str, details: Optional[Dict[str, Any]] = None):
+    def log_bot_event(
+        action: str, status: str, details: Optional[Dict[str, Any]] = None
+    ):
         """Log bot lifecycle events"""
         metadata = {
             "event_type": "bot_lifecycle",

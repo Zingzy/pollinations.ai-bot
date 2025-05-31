@@ -405,7 +405,7 @@ async def models(ctx) -> None:
     )
 
     embed.set_thumbnail(url=profilePicture)
-    
+
     if config.MODELS:
         # Create a formatted list of models
         models_list = []
@@ -415,40 +415,41 @@ async def models(ctx) -> None:
                 models_list.append(f"**{i}. {model}** ⭐ *(default)*")
             else:
                 models_list.append(f"{i}. {model}")
-        
+
         # Split models into chunks to avoid hitting Discord's field value limit
         chunk_size = 10
-        model_chunks = [models_list[i:i + chunk_size] for i in range(0, len(models_list), chunk_size)]
-        
+        model_chunks = [
+            models_list[i : i + chunk_size]
+            for i in range(0, len(models_list), chunk_size)
+        ]
+
         for i, chunk in enumerate(model_chunks):
             field_name = "Models" if i == 0 else f"Models (continued {i + 1})"
-            embed.add_field(
-                name=field_name,
-                value="\n".join(chunk),
-                inline=False
-            )
+            embed.add_field(name=field_name, value="\n".join(chunk), inline=False)
     else:
         embed.add_field(
             name="⚠️ No Models Available",
             value=f"Currently using fallback model: **{config.image_generation.fallback_model}**",
-            inline=False
+            inline=False,
         )
 
     embed.add_field(
         name="📊 Statistics",
         value=f"```Total Models: {len(config.MODELS)}\nRefresh Interval: {config.api.models_refresh_interval_minutes} minutes\nFallback Model: {config.image_generation.fallback_model}```",
-        inline=False
+        inline=False,
     )
 
     embed.add_field(
         name="💡 How to Use",
         value=f"Use these models with </pollinate:{config.bot.commands['pollinate_id']}> or </random:{config.bot.commands['random_id']}> commands by selecting them from the model dropdown.",
-        inline=False
+        inline=False,
     )
 
     embed.set_footer(
         text=f"Information requested by: {ctx.author.name} • Models last updated",
-        icon_url=ctx.author.avatar.url if ctx.author.avatar else ctx.author.default_avatar.url,
+        icon_url=ctx.author.avatar.url
+        if ctx.author.avatar
+        else ctx.author.default_avatar.url,
     )
 
     await ctx.send(embed=embed)
