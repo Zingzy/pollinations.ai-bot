@@ -5,9 +5,10 @@ import discord
 from discord.ext import commands, tasks
 import statistics
 import time
-import aiofiles.os
-from config import config, initialize_models_async
+from config import config
 from utils.logger import discord_logger, logger
+from utils.fs import list_py_files
+from utils.models import fetch_and_log_models
 import traceback
 
 load_dotenv(override=True)
@@ -64,27 +65,10 @@ class pollinationsBot(commands.Bot):
 
     @tasks.loop(minutes=config.api.models_refresh_interval_minutes)
     async def refresh_models(self) -> None:
-        try:
-            # Use the async model initialization function
-            new_models = await initialize_models_async(config)
-            config.MODELS.clear()
-            config.MODELS.extend(new_models)
-            discord_logger.log_bot_event(
-                action="model_refresh",
-                status="success",
-                details=f"Models refreshed: {config.MODELS}",
-            )
-        except Exception as e:
-            config.MODELS = [config.image_generation.fallback_model]
-            discord_logger.log_error(
-                error_type="model_refresh_error",
-                error_message=str(e),
-                traceback=None,
-                context={"fallback_model": config.image_generation.fallback_model},
-            )
+        await fetch_and_log_models(config, action="model_refresh")
 
     async def on_ready(self) -> None:
-        await load()
+        await load_cogs()
 
         global start_time
         start_time = datetime.datetime.now(datetime.UTC)
@@ -100,22 +84,7 @@ class pollinationsBot(commands.Bot):
             await self.tree.sync()
 
             # Initialize models asynchronously on startup
-            try:
-                new_models = await initialize_models_async(config)
-                config.MODELS.clear()
-                config.MODELS.extend(new_models)
-                discord_logger.log_bot_event(
-                    action="async_model_init",
-                    status="success",
-                    details=f"Models initialized asynchronously: {config.MODELS}",
-                )
-            except Exception as e:
-                discord_logger.log_error(
-                    error_type="async_model_init_error",
-                    error_message=str(e),
-                    traceback=None,
-                    context={"fallback_model": config.image_generation.fallback_model},
-                )
+            await fetch_and_log_models(config, action="async_model_init")
 
             self.refresh_models.start()
             self.synced = True
@@ -134,25 +103,16 @@ class pollinationsBot(commands.Bot):
 bot = pollinationsBot()
 
 
-async def load() -> None:
-    # Use async directory listing to avoid blocking
+async def load_cogs() -> None:
+    """Load all Python files from the cogs directory as extensions."""
     try:
-        filenames = await aiofiles.os.listdir("./cogs")
-        for filename in filenames:
-            if filename.endswith(".py"):
-                await bot.load_extension(f"cogs.{filename[:-3]}")
-    except ImportError:
-        # Fallback to synchronous method if aiofiles is not available
-        logger.warning("aiofiles not available, using synchronous directory listing")
-        for filename in os.listdir("./cogs"):
-            if filename.endswith(".py"):
-                await bot.load_extension(f"cogs.{filename[:-3]}")
+        cog_names = await list_py_files("./cogs")
+        for cog_name in cog_names:
+            await bot.load_extension(f"cogs.{cog_name}")
+        logger.info(f"Successfully loaded {len(cog_names)} cogs")
     except Exception as e:
-        # Fallback to synchronous method for any other errors
-        logger.warning(f"Async directory listing failed, falling back to sync: {e}")
-        for filename in os.listdir("./cogs"):
-            if filename.endswith(".py"):
-                await bot.load_extension(f"cogs.{filename[:-3]}")
+        logger.error(f"Failed to load cogs: {e}")
+        raise
 
 
 @bot.event
@@ -250,7 +210,6 @@ async def on_command_error(ctx, error):
         embed=discord.Embed(
             title="Error", description=str(error), color=int(config.ui.colors.error, 16)
         ),
-        ephemeral=True,
     )
 
 

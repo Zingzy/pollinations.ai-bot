@@ -92,7 +92,7 @@ class DiscordLogger:
         return json.dumps(metadata, default=str)
 
     @staticmethod
-    def log_bot_event(action: str, status: str, details: str = None):
+    def log_bot_event(action: str, status: str, details: Optional[Dict[str, Any]] = None):
         """Log bot lifecycle events"""
         metadata = {
             "event_type": "bot_lifecycle",
