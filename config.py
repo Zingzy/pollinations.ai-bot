@@ -1,8 +1,11 @@
 from pydantic import BaseModel, model_validator
 import tomli
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
+from utils.logger import logger
 from pathlib import Path
 import sys
+import os
+import re
 
 
 class BotConfig(BaseModel):
@@ -14,6 +17,7 @@ class BotConfig(BaseModel):
 
 
 class APIConfig(BaseModel):
+    api_key: str
     models_list_endpoint: str
     image_gen_endpoint: str
     models_refresh_interval_minutes: int
@@ -93,8 +97,30 @@ class Config(BaseModel):
         required_commands = {"pollinate", "multi_pollinate", "random"}
         if not all(cmd in self.commands for cmd in required_commands):
             missing = required_commands - self.commands.keys()
+            logger.error(f"Missing required commands: {missing}")
             raise ValueError(f"Missing required commands: {missing}")
         return self
+
+
+def resolve_env_variables(data: Any) -> Any:
+    """Recursively resolve environment variables in config data"""
+    if isinstance(data, dict):
+        return {key: resolve_env_variables(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [resolve_env_variables(item) for item in data]
+    elif isinstance(data, str):
+        # Match ${VARIABLE_NAME} pattern
+        pattern = r'\$\{([^}]+)\}'
+        matches = re.findall(pattern, data)
+        for match in matches:
+            env_value = os.getenv(match)
+            if env_value is not None:
+                data = data.replace(f'${{{match}}}', env_value)
+            else:
+                logger.warning(f"Environment variable '{match}' not found, keeping original value")
+        return data
+    else:
+        return data
 
 
 def load_config(path: str = "config.toml") -> Config:
@@ -105,6 +131,9 @@ def load_config(path: str = "config.toml") -> Config:
 
     with open(config_path, "rb") as f:
         config_data = tomli.load(f)
+    
+    # Resolve environment variables
+    config_data = resolve_env_variables(config_data)
 
     return Config(**config_data)
 
