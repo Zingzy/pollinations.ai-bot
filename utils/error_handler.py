@@ -1,5 +1,6 @@
-from discord import Embed, Interaction
+from discord import Interaction
 from config import config
+from utils.embed_utils import SafeEmbed
 
 
 async def send_error_embed(
@@ -8,7 +9,7 @@ async def send_error_embed(
     if not description:
         description = config.ui.error_messages["unknown"]
 
-    embed = Embed(
+    embed = SafeEmbed(
         title=title, description=description, color=int(config.ui.colors.error, 16)
     )
 

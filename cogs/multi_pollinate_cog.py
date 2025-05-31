@@ -6,7 +6,7 @@ import traceback
 import asyncio
 
 from config import config
-from utils.embed_utils import generate_error_message
+from utils.embed_utils import generate_error_message, SafeEmbed
 from utils.image_gen_utils import generate_image, validate_dimensions, validate_prompt
 from utils.error_handler import send_error_embed
 from utils.logger import discord_logger
@@ -75,7 +75,7 @@ class multiImagineButtonView(discord.ui.View):
 
             if interaction.user.id != author_id:
                 await interaction.response.send_message(
-                    embed=discord.Embed(
+                    embed=SafeEmbed(
                         title="Error",
                         description=config.ui.error_messages["delete_unauthorized"],
                         color=int(config.ui.colors.error, 16),
@@ -94,7 +94,7 @@ class multiImagineButtonView(discord.ui.View):
                 context={"user_id": interaction.user.id}
             )
             await interaction.response.send_message(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Error Deleting the Image",
                     description=f"{e}",
                     color=int(config.ui.colors.error, 16),
@@ -157,7 +157,7 @@ class Multi_pollinate(commands.Cog):
         total_models: int = len(config.MODELS)
 
         await interaction.response.send_message(
-            embed=discord.Embed(
+            embed=SafeEmbed(
                 title="Generating Image",
                 description=f"Generating images across {total_models} models...\n"
                 f"Completed: 0/{total_models} 0%",
@@ -188,7 +188,7 @@ class Multi_pollinate(commands.Cog):
             async with progress_lock:
                 completed_count += 1
                 await response.edit(
-                    embed=discord.Embed(
+                    embed=SafeEmbed(
                         title="Generating Images",
                         description=f"Generating images across {total_models} models...\n"
                         f"Completed: {completed_count}/{total_models} "
@@ -205,7 +205,7 @@ class Multi_pollinate(commands.Cog):
                     (datetime.datetime.now() - sub_start_time).total_seconds(), 2
                 )
                 image_file = discord.File(image, f"image_{i}.png")
-                embed: discord.Embed = discord.Embed().set_image(
+                embed: SafeEmbed = SafeEmbed().set_image(
                     url=f"attachment://image_{i}.png"
                 )
 
@@ -279,7 +279,7 @@ class Multi_pollinate(commands.Cog):
         """Centralized error handler for the multiimagine command."""
 
         if isinstance(error, app_commands.CommandOnCooldown):
-            embed: discord.Embed = await generate_error_message(
+            embed: SafeEmbed = await generate_error_message(
                 interaction,
                 error,
                 cooldown_configuration=[

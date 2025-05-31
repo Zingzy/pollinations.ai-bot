@@ -6,7 +6,7 @@ import traceback
 
 from config import config
 from utils.image_gen_utils import generate_image, validate_dimensions, validate_prompt
-from utils.embed_utils import generate_pollinate_embed, generate_error_message
+from utils.embed_utils import generate_pollinate_embed, generate_error_message, SafeEmbed
 from utils.pollinate_utils import parse_url
 from utils.error_handler import send_error_embed
 from utils.logger import discord_logger
@@ -26,7 +26,7 @@ class ImagineButtonView(discord.ui.View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ) -> None:
         await interaction.response.send_message(
-            embed=discord.Embed(
+            embed=SafeEmbed(
                 title="Regenerating Your Image",
                 description="Please wait while we generate your image",
                 color=int(config.ui.colors.success, 16),
@@ -71,7 +71,7 @@ class ImagineButtonView(discord.ui.View):
                 }
             )
             await interaction.followup.send(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Couldn't Generate the Requested Image 😔",
                     description=f"```\n{e.message}\n```",
                     color=int(config.ui.colors.error, 16),
@@ -91,7 +91,7 @@ class ImagineButtonView(discord.ui.View):
                 }
             )
             await interaction.followup.send(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Error",
                     description=f"Error generating image: {e}",
                     color=int(config.ui.colors.error, 16),
@@ -105,7 +105,7 @@ class ImagineButtonView(discord.ui.View):
             image_file.filename = f"SPOILER_{image_file.filename}"
         time_taken_delta: datetime.timedelta = datetime.datetime.now() - start
 
-        embed: discord.Embed = await generate_pollinate_embed(
+        embed: SafeEmbed = await generate_pollinate_embed(
             interaction, False, dic, time_taken_delta
         )
 
@@ -137,7 +137,7 @@ class ImagineButtonView(discord.ui.View):
                     }
                 )
                 await interaction.response.send_message(
-                    embed=discord.Embed(
+                    embed=SafeEmbed(
                         title="Error",
                         description=config.ui.error_messages["delete_unauthorized"],
                         color=int(config.ui.colors.error, 16),
@@ -167,7 +167,7 @@ class ImagineButtonView(discord.ui.View):
                 }
             )
             await interaction.response.send_message(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Error Deleting the Image",
                     description=f"{e}",
                     color=int(config.ui.colors.error, 16),
@@ -189,7 +189,7 @@ class ImagineButtonView(discord.ui.View):
             interaction_data: dict = interaction.message.embeds[0].to_dict()
             prompt: str = interaction_data["fields"][0]["value"][3:-3]
             url: str = interaction_data["url"]
-            embed: discord.Embed = discord.Embed(
+            embed: SafeEmbed = SafeEmbed(
                 description=f"**Prompt: {prompt}**",
                 color=int(config.ui.colors.success, 16),
             )
@@ -210,7 +210,7 @@ class ImagineButtonView(discord.ui.View):
                 }
             )
             await interaction.response.send_message(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Image Bookmarked",
                     description="The image has been bookmarked and sent to your DMs",
                     color=int(config.ui.colors.success, 16),
@@ -229,7 +229,7 @@ class ImagineButtonView(discord.ui.View):
                 }
             )
             await interaction.response.send_message(
-                embed=discord.Embed(
+                embed=SafeEmbed(
                     title="Error Bookmarking the Image",
                     description=f"{e}",
                     color=int(config.ui.colors.error, 16),
@@ -322,7 +322,7 @@ class Imagine(commands.Cog):
                 image_file.filename = f"SPOILER_{image_file.filename}"
             time_taken_delta: datetime.timedelta = datetime.datetime.now() - start
             view: discord.ui.View = ImagineButtonView()
-            embed: discord.Embed = await generate_pollinate_embed(
+            embed: SafeEmbed = await generate_pollinate_embed(
                 interaction, private, dic, time_taken_delta
             )
             if private:
@@ -360,7 +360,7 @@ class Imagine(commands.Cog):
                     "retry_after": error.retry_after
                 }
             )
-            embed: discord.Embed = await generate_error_message(
+            embed: SafeEmbed = await generate_error_message(
                 interaction,
                 error,
                 cooldown_configuration=[
