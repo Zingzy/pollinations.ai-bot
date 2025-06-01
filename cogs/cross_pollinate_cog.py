@@ -153,7 +153,7 @@ class CrossPollinateButtonView(discord.ui.View):
             return
 
 
-async def generate_cross_pollinate(prompt: str, image_url: str):
+async def generate_cross_pollinate(prompt: str, image_url: str, nologo: bool):
     """Generate an edited image using the gptimage model"""
 
     # Encode the image URL for the API
@@ -163,12 +163,14 @@ async def generate_cross_pollinate(prompt: str, image_url: str):
     url: str = f"{config.api.image_gen_endpoint}/{prompt}"
     url += f"?image={encoded_image}"
     url += "&model=gptimage"
+    url += f"&nologo={nologo}" if nologo else ""
     url += f"&referer={config.image_generation.referer}"
 
     dic = {
         "prompt": prompt,
         "image_url": image_url,
         "model": "gptimage",
+        "nologo": nologo,
         "url": quote(url, safe=":/&=?"),
     }
 
@@ -290,6 +292,7 @@ class CrossPollinate(commands.Cog):
     @app_commands.describe(
         image="The image you want to cross-pollinate (upload an image file)",
         prompt="Describe how you want to modify the image",
+        nologo="Remove the Logo",
         private="Only you can see the cross-pollinated image if set to True",
     )
     async def cross_pollinate_command(
@@ -297,6 +300,7 @@ class CrossPollinate(commands.Cog):
         interaction: discord.Interaction,
         image: discord.Attachment,
         prompt: str,
+        nologo: bool = config.image_generation.defaults.nologo,
         private: bool = config.image_generation.defaults.private,
     ) -> None:
         # Validate the prompt
@@ -343,7 +347,7 @@ class CrossPollinate(commands.Cog):
             image_url = image.url
 
             dic, edited_image = await generate_cross_pollinate(
-                prompt=prompt, image_url=image_url
+                prompt=prompt, image_url=image_url, nologo=nologo
             )
             time_taken = (datetime.datetime.now() - start).total_seconds()
 
@@ -370,7 +374,9 @@ class CrossPollinate(commands.Cog):
 
             if private:
                 # For private responses, send embed with file attachment but no view
-                await interaction.followup.send(embed=embed, file=image_file, ephemeral=True)
+                await interaction.followup.send(
+                    embed=embed, file=image_file, ephemeral=True
+                )
             else:
                 # For public responses, send embed with view and file attachment
                 view: discord.ui.View = CrossPollinateButtonView()

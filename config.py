@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
+
 class BotConfig(BaseModel):
     command_prefix: str
     bot_id: str
