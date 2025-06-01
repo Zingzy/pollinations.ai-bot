@@ -8,7 +8,9 @@ import os
 import re
 import aiohttp
 import asyncio
+from dotenv import load_dotenv
 
+load_dotenv(override=True)
 
 class BotConfig(BaseModel):
     command_prefix: str

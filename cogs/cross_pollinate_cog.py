@@ -97,7 +97,7 @@ class CrossPollinateButtonView(discord.ui.View):
                 (
                     field
                     for field in interaction_data["fields"]
-                    if field["name"] == "Cross-Pollinate Prompt"
+                    if field["name"] == "Cross-Pollinate Prompt 🐝"
                 ),
                 None,
             )
@@ -252,11 +252,8 @@ async def generate_cross_pollinate_embed(
         inline=False,
     )
 
-    # Set the image: use attachment reference for public, direct URL for private
-    if not private:
-        embed.set_image(url="attachment://cross_pollinated_image.png")
-    else:
-        embed.set_image(url=dic["url"])
+    # Always use attachment reference since we send file attachments for both private and public
+    embed.set_image(url="attachment://cross_pollinated_image.png")
 
     if not private:
         embed.set_footer(
@@ -372,8 +369,8 @@ class CrossPollinate(commands.Cog):
             )
 
             if private:
-                # For private responses, send embed without view and without file attachment
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                # For private responses, send embed with file attachment but no view
+                await interaction.followup.send(embed=embed, file=image_file, ephemeral=True)
             else:
                 # For public responses, send embed with view and file attachment
                 view: discord.ui.View = CrossPollinateButtonView()
