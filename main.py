@@ -257,7 +257,9 @@ async def ping(ctx) -> None:
             value=f"{hours} hours {minutes} minutes {seconds} seconds",
             inline=False,
         )
-        embed.set_user_footer_with_text(ctx, f"Information requested by: {ctx.author.name}")
+        embed.set_user_footer_with_text(
+            ctx, f"Information requested by: {ctx.author.name}"
+        )
         embed.set_thumbnail(
             url="https://uploads.poxipage.com/7q5iw7dwl5jc3zdjaergjhpat27tws8bkr9fgy45_938843265627717703-webp"
         )
@@ -444,7 +446,9 @@ async def models(ctx) -> None:
         inline=False,
     )
 
-    embed.set_user_footer_with_text(ctx, f"Information requested by: {ctx.author.name} • Models last updated")
+    embed.set_user_footer_with_text(
+        ctx, f"Information requested by: {ctx.author.name} • Models last updated"
+    )
 
     await ctx.send(embed=embed)
 
