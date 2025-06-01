@@ -19,7 +19,9 @@ from cogs.cross_pollinate_cog import EditImageModal
 
 
 class BeemojiButtonView(discord.ui.View):
-    def __init__(self, emoji1_name: str, emoji2_name: str, generated_name: str = None) -> None:
+    def __init__(
+        self, emoji1_name: str, emoji2_name: str, generated_name: str = None
+    ) -> None:
         super().__init__(timeout=None)
         self.emoji1_name = emoji1_name
         self.emoji2_name = emoji2_name
@@ -61,7 +63,9 @@ class BeemojiButtonView(discord.ui.View):
                 return
 
             original_image_url = interaction.message.embeds[0].thumbnail.url
-            original_prompt = f"A remixed version of {self.emoji1_name} and {self.emoji2_name} emojis"
+            original_prompt = (
+                f"A remixed version of {self.emoji1_name} and {self.emoji2_name} emojis"
+            )
 
             # Show the edit modal
             modal = EditImageModal(original_image_url, original_prompt)
@@ -92,7 +96,9 @@ class BeemojiButtonView(discord.ui.View):
         custom_id="beemoji-add-button",
         emoji="🔗",
     )
-    async def add_to_server(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def add_to_server(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         try:
             # Check if user has manage emojis permission
             if not interaction.user.guild_permissions.manage_emojis:
@@ -122,15 +128,17 @@ class BeemojiButtonView(discord.ui.View):
                 return
 
             image_url = interaction.message.embeds[0].thumbnail.url
-            
+
             await interaction.response.defer(thinking=True, ephemeral=True)
 
             # Download the image
             async with aiohttp.ClientSession() as session:
                 async with session.get(image_url) as response:
                     if response.status != 200:
-                        raise Exception(f"Failed to download image: HTTP {response.status}")
-                    
+                        raise Exception(
+                            f"Failed to download image: HTTP {response.status}"
+                        )
+
                     image_data = await response.read()
 
             # Use the generated emoji name or create a fallback
@@ -138,9 +146,11 @@ class BeemojiButtonView(discord.ui.View):
                 emoji_name = self.generated_name
             else:
                 # Fallback: Create emoji name from the two input emojis
-                emoji_name = f"beemoji_{self.emoji1_name}_{self.emoji2_name}".replace(" ", "_")[:32]
+                emoji_name = f"beemoji_{self.emoji1_name}_{self.emoji2_name}".replace(
+                    " ", "_"
+                )[:32]
                 # Remove any non-alphanumeric characters except underscores
-                emoji_name = re.sub(r'[^a-zA-Z0-9_]', '', emoji_name)
+                emoji_name = re.sub(r"[^a-zA-Z0-9_]", "", emoji_name)
                 # Ensure it doesn't start with a number
                 if emoji_name and emoji_name[0].isdigit():
                     emoji_name = f"beemoji_{emoji_name}"
@@ -149,7 +159,7 @@ class BeemojiButtonView(discord.ui.View):
             emoji = await interaction.guild.create_custom_emoji(
                 name=emoji_name,
                 image=image_data,
-                reason=f"Beemoji created by {interaction.user}"
+                reason=f"Beemoji created by {interaction.user}",
             )
 
             discord_logger.log_bot_event(
@@ -177,17 +187,17 @@ class BeemojiButtonView(discord.ui.View):
                 error_message = "The server has reached the maximum number of emojis."
             elif e.code == 50035:
                 error_message = "Invalid emoji name or the name is already taken."
-            
+
             discord_logger.log_error(
                 error_type="emoji_add_error",
                 error_message=str(e),
                 context={
                     "user_id": interaction.user.id,
                     "guild_id": interaction.guild_id,
-                    "error_code": getattr(e, 'code', None),
+                    "error_code": getattr(e, "code", None),
                 },
             )
-            
+
             await interaction.followup.send(
                 embed=SafeEmbed(
                     title="❌ Failed to Add Emoji",
@@ -283,12 +293,12 @@ def parse_emoji_input(emoji_input: str) -> tuple[str, str]:
     Handles both Unicode emojis and custom Discord emojis (static and animated)
     """
     # Check if it's a custom Discord emoji: <:name:id> or <a:name:id>
-    custom_emoji_match = re.match(r'<(a?):([^:]+):(\d+)>', emoji_input.strip())
+    custom_emoji_match = re.match(r"<(a?):([^:]+):(\d+)>", emoji_input.strip())
     if custom_emoji_match:
-        is_animated = custom_emoji_match.group(1) == 'a'
+        is_animated = custom_emoji_match.group(1) == "a"
         name = custom_emoji_match.group(2)
         emoji_id = custom_emoji_match.group(3)
-        
+
         # Check for animated emojis and handle appropriately
         if is_animated:
             # For animated emojis, we'll use the first frame as PNG
@@ -299,13 +309,13 @@ def parse_emoji_input(emoji_input: str) -> tuple[str, str]:
             # Static Discord emoji
             url = f"https://cdn.discordapp.com/emojis/{emoji_id}.png"
             return name, url
-    
+
     # Check if it's just the emoji ID (for custom emojis)
     if emoji_input.strip().isdigit():
         emoji_id = emoji_input.strip()
         url = f"https://cdn.discordapp.com/emojis/{emoji_id}.png"
         return f"emoji_{emoji_id}", url
-    
+
     # For Unicode emojis, we need to convert to Twemoji URL
     # Unicode emojis are more complex, but we can use a simpler approach
     # by encoding the emoji to get its unicode codepoints
@@ -315,7 +325,7 @@ def parse_emoji_input(emoji_input: str) -> tuple[str, str]:
         for char in emoji_input.strip():
             if ord(char) > 127:  # Non-ASCII character
                 codepoints.append(f"{ord(char):x}")
-        
+
         if codepoints:
             # Use Twemoji CDN (Twitter's emoji images)
             codepoint_str = "-".join(codepoints)
@@ -333,40 +343,42 @@ async def generate_emoji_name(emoji1_name: str, emoji2_name: str) -> str:
     try:
         # Create a prompt for generating a creative emoji name
         prompt = f"Create a single creative emoji name (maximum 32 characters, no spaces, use underscores) that combines {emoji1_name} and {emoji2_name}. Only return the name, nothing else."
-        
+
         # URL encode the prompt
         encoded_prompt = quote(prompt, safe="")
-        
+
         # Build the API URL
         url = f"https://text.pollinations.ai/{encoded_prompt}"
         url += "?model=openai"
         url += f"&referrer={config.image_generation.referer}"
-        
+
         headers = {
             "Authorization": f"Bearer {config.api.api_key}",
         }
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
                     generated_name = await response.text()
                     # Clean up the generated name
-                    generated_name = generated_name.strip().replace(" ", "_").replace("-", "_")
+                    generated_name = (
+                        generated_name.strip().replace(" ", "_").replace("-", "_")
+                    )
                     # Remove any non-alphanumeric characters except underscores
-                    generated_name = re.sub(r'[^a-zA-Z0-9_]', '', generated_name)
+                    generated_name = re.sub(r"[^a-zA-Z0-9_]", "", generated_name)
                     # Ensure it doesn't start with a number
                     if generated_name and generated_name[0].isdigit():
                         generated_name = f"beemoji_{generated_name}"
                     # Limit to 32 characters
                     generated_name = generated_name[:32]
-                    
+
                     if generated_name:
                         return generated_name
-                
+
         # Fallback if text generation fails
         fallback_name = f"beemoji_{emoji1_name}_{emoji2_name}".replace(" ", "_")[:32]
-        return re.sub(r'[^a-zA-Z0-9_]', '', fallback_name)
-        
+        return re.sub(r"[^a-zA-Z0-9_]", "", fallback_name)
+
     except Exception as e:
         discord_logger.log_error(
             error_type="text_generation_error",
@@ -375,18 +387,20 @@ async def generate_emoji_name(emoji1_name: str, emoji2_name: str) -> str:
         )
         # Fallback if text generation fails
         fallback_name = f"beemoji_{emoji1_name}_{emoji2_name}".replace(" ", "_")[:32]
-        return re.sub(r'[^a-zA-Z0-9_]', '', fallback_name)
+        return re.sub(r"[^a-zA-Z0-9_]", "", fallback_name)
 
 
-async def generate_beemoji(emoji1_url: str, emoji2_url: str, emoji1_name: str, emoji2_name: str):
+async def generate_beemoji(
+    emoji1_url: str, emoji2_url: str, emoji1_name: str, emoji2_name: str
+):
     """Generate a remixed emoji using the gptimage model"""
-    
+
     # Create a prompt for mixing the two emojis
     prompt = f"Create a small cute remix combining elements of {emoji1_name} and {emoji2_name} emojis, 80x80 pixels, clean simple style, keep the background completely transparent. dont add fake transparent background"
-    
+
     # Use the first emoji as the base image and the second as reference in the prompt
     encoded_image = quote(emoji1_url, safe="")
-    
+
     # Build the API URL with image parameter
     url: str = f"{config.api.image_gen_endpoint}/{prompt}"
     url += f"?image={encoded_image}"
@@ -478,7 +492,7 @@ async def generate_beemoji_embed(
         value=f"```{time_taken.total_seconds():.2f}s```",
         inline=True,
     )
-    
+
     embed.add_field(
         name="Dimensions",
         value="```80x80```",
@@ -541,7 +555,7 @@ class Beemoji(commands.Cog):
             try:
                 emoji1_name, emoji1_url = parse_emoji_input(emoji1)
                 emoji2_name, emoji2_url = parse_emoji_input(emoji2)
-                
+
                 # Log if we're using animated emojis
                 if "_animated" in emoji1_name or "_animated" in emoji2_name:
                     discord_logger.log_bot_event(
@@ -553,7 +567,7 @@ class Beemoji(commands.Cog):
                             "emoji2": emoji2_name,
                         },
                     )
-                    
+
             except ValueError as e:
                 await interaction.followup.send(
                     embed=SafeEmbed(
@@ -595,20 +609,22 @@ class Beemoji(commands.Cog):
 
             # Create the file attachment
             image_file = discord.File(beemoji_image, filename="beemoji.png")
-            
+
             time_taken_delta = datetime.datetime.now() - start
             embed = await generate_beemoji_embed(
                 interaction,
                 dic,
                 time_taken_delta,
-                emoji1, 
+                emoji1,
                 emoji2,
                 image_file.filename,
                 generated_emoji_name,
             )
 
             if private:
-                await interaction.followup.send(embed=embed, file=image_file, ephemeral=True)
+                await interaction.followup.send(
+                    embed=embed, file=image_file, ephemeral=True
+                )
             else:
                 # Use BeemojiButtonView for public images to get edit and add to server functionality
                 view = BeemojiButtonView(emoji1_name, emoji2_name, generated_emoji_name)
@@ -662,8 +678,10 @@ class Beemoji(commands.Cog):
                     "retry_after": error.retry_after,
                 },
             )
-            
-            end_time = datetime.datetime.now() + datetime.timedelta(seconds=error.retry_after)
+
+            end_time = datetime.datetime.now() + datetime.timedelta(
+                seconds=error.retry_after
+            )
             end_time_ts = int(end_time.timestamp())
 
             embed = SafeEmbed(
@@ -672,7 +690,7 @@ class Beemoji(commands.Cog):
                 color=int(config.ui.colors.error, 16),
                 timestamp=interaction.created_at,
             )
-            
+
             embed.add_field(
                 name="How many times can I use this command?",
                 value="- 1 time every 30 seconds",
@@ -701,4 +719,4 @@ async def setup(bot) -> None:
     await bot.add_cog(Beemoji(bot))
     discord_logger.log_bot_event(
         action="cog_setup", status="success", details={"cog": "Beemoji"}
-    ) 
+    )
