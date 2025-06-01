@@ -7,13 +7,24 @@ from config import config
 from utils.image_gen_utils import generate_image, validate_dimensions
 from utils.embed_utils import generate_error_message, SafeEmbed
 from utils.error_handler import send_error_embed
+from utils.logger import discord_logger
 from exceptions import DimensionTooSmallError, APIError
+
+# Import cross-pollinate button view for edit functionality
+from cogs.cross_pollinate_cog import CrossPollinateButtonView
 
 
 class RandomImage(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
         self.command_config = config.commands["random"]
+
+    async def cog_load(self) -> None:
+        await self.bot.wait_until_ready()
+        self.bot.add_view(CrossPollinateButtonView())
+        discord_logger.log_bot_event(
+            action="cog_load", status="success", details={"cog": "RandomImage"}
+        )
 
     @app_commands.command(name="random", description="Generate Random AI Images")
     @app_commands.choices(
@@ -81,7 +92,6 @@ class RandomImage(commands.Cog):
             else "",
             timestamp=datetime.datetime.now(datetime.timezone.utc),
             url=dic["url"],
-            color=int(config.ui.colors.success, 16),
         )
 
         embed.add_field(name="Seed", value=f"```{dic['seed']}```", inline=True)
@@ -100,7 +110,9 @@ class RandomImage(commands.Cog):
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
         else:
-            await interaction.followup.send(embed=embed, file=image_file)
+            # Use CrossPollinateButtonView for public images to get edit, delete, and bookmark functionality
+            view = CrossPollinateButtonView()
+            await interaction.followup.send(embed=embed, view=view, file=image_file)
 
     @random_image_command.error
     async def random_image_command_error(
@@ -140,4 +152,6 @@ class RandomImage(commands.Cog):
 
 async def setup(bot) -> None:
     await bot.add_cog(RandomImage(bot))
-    print("Random Image cog loaded")
+    discord_logger.log_bot_event(
+        action="cog_setup", status="success", details={"cog": "RandomImage"}
+    )

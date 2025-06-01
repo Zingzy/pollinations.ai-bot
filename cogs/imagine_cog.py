@@ -150,7 +150,10 @@ class ImagineButtonView(discord.ui.View):
                 return
 
             # Get the original image URL from the message embed
-            if not interaction.message.embeds or not interaction.message.embeds[0].image:
+            if (
+                not interaction.message.embeds
+                or not interaction.message.embeds[0].image
+            ):
                 await interaction.response.send_message(
                     embed=SafeEmbed(
                         title="🎨 No Image Found",
@@ -160,17 +163,17 @@ class ImagineButtonView(discord.ui.View):
                     ephemeral=True,
                 )
                 return
-            
+
             original_image_url = interaction.message.embeds[0].image.url
-            
+
             # Get the original prompt
             interaction_data: dict = interaction.message.embeds[0].to_dict()
             original_prompt: str = interaction_data["fields"][0]["value"][3:-3]
-            
+
             # Show the edit modal
             modal = EditImageModal(original_image_url, original_prompt)
             await interaction.response.send_modal(modal)
-            
+
         except Exception as e:
             discord_logger.log_error(
                 error_type="edit_button_error",

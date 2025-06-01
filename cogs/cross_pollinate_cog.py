@@ -35,9 +35,9 @@ class EditImageModal(discord.ui.Modal, title="Edit Image"):
         try:
             # Validate the prompt
             validate_prompt(self.edit_prompt.value)
-            
+
             await interaction.response.defer(thinking=True)
-            
+
             start = datetime.datetime.now()
             discord_logger.log_image_generation(
                 action="edit_start",
@@ -52,9 +52,9 @@ class EditImageModal(discord.ui.Modal, title="Edit Image"):
             dic, edited_image = await generate_cross_pollinate(
                 prompt=self.edit_prompt.value,
                 image_url=self.original_image_url,
-                nologo=config.image_generation.defaults.nologo
+                nologo=config.image_generation.defaults.nologo,
             )
-            
+
             time_taken = (datetime.datetime.now() - start).total_seconds()
             discord_logger.log_image_generation(
                 action="edit_complete",
@@ -72,7 +72,13 @@ class EditImageModal(discord.ui.Modal, title="Edit Image"):
 
             time_taken_delta = datetime.datetime.now() - start
             embed = await generate_cross_pollinate_embed(
-                interaction, False, dic, time_taken_delta, self.edit_prompt.value, self.original_image_url, image_file.filename
+                interaction,
+                False,
+                dic,
+                time_taken_delta,
+                self.edit_prompt.value,
+                self.original_image_url,
+                image_file.filename,
             )
 
             # Send the edited image with cross-pollinate buttons
@@ -153,7 +159,10 @@ class CrossPollinateButtonView(discord.ui.View):
                 return
 
             # Get the original image URL from the message embed
-            if not interaction.message.embeds or not interaction.message.embeds[0].image:
+            if (
+                not interaction.message.embeds
+                or not interaction.message.embeds[0].image
+            ):
                 await interaction.response.send_message(
                     embed=SafeEmbed(
                         title="🎨 No Image Found",
@@ -163,27 +172,27 @@ class CrossPollinateButtonView(discord.ui.View):
                     ephemeral=True,
                 )
                 return
-            
+
             original_image_url = interaction.message.embeds[0].image.url
-            
+
             # Get the original prompt based on the embed fields
             interaction_data: dict = interaction.message.embeds[0].to_dict()
-            
+
             # Check if it's a cross-pollinate embed or regular pollinate embed
             prompt_field = None
             for field in interaction_data.get("fields", []):
                 if field["name"] in ["Cross-Pollinate Prompt 🐝", "Prompt"]:
                     prompt_field = field
                     break
-            
+
             original_prompt: str = (
                 prompt_field["value"][3:-3] if prompt_field else "Unknown prompt"
             )
-            
+
             # Show the edit modal
             modal = EditImageModal(original_image_url, original_prompt)
             await interaction.response.send_modal(modal)
-            
+
         except Exception as e:
             discord_logger.log_error(
                 error_type="edit_button_error",
@@ -552,7 +561,13 @@ class CrossPollinate(commands.Cog):
 
             time_taken_delta: datetime.timedelta = datetime.datetime.now() - start
             embed: SafeEmbed = await generate_cross_pollinate_embed(
-                interaction, private, dic, time_taken_delta, prompt, image_url, image_file.filename
+                interaction,
+                private,
+                dic,
+                time_taken_delta,
+                prompt,
+                image_url,
+                image_file.filename,
             )
 
             if private:
