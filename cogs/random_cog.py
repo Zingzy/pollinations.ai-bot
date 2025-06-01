@@ -134,6 +134,7 @@ class RandomImage(commands.Cog):
                 interaction,
                 "Dimensions Too Small",
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=0.5,
             )
 
         elif isinstance(error, APIError):
@@ -141,6 +142,7 @@ class RandomImage(commands.Cog):
                 interaction,
                 "Couldn't Generate the Requested Image 😔",
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=2,
             )
 
         else:
@@ -148,6 +150,7 @@ class RandomImage(commands.Cog):
                 interaction,
                 config.ui.error_messages["unknown"],
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=2,
             )
 
 

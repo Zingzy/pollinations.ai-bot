@@ -452,6 +452,7 @@ class Imagine(commands.Cog):
                 interaction,
                 "Prompt Too Long",
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=0.5,
             )
         elif isinstance(error, DimensionTooSmallError):
             discord_logger.log_error(
@@ -463,6 +464,7 @@ class Imagine(commands.Cog):
                 interaction,
                 "Dimensions Too Small",
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=0.5,
             )
         elif isinstance(error, APIError):
             discord_logger.log_error(
@@ -474,6 +476,7 @@ class Imagine(commands.Cog):
                 interaction,
                 "Couldn't Generate the Requested Image 😔",
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=2,
             )
         else:
             discord_logger.log_error(
@@ -486,6 +489,7 @@ class Imagine(commands.Cog):
                 interaction,
                 "An unexpected error occurred",
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=2,
             )
 
 

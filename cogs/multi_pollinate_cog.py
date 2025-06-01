@@ -291,6 +291,7 @@ class Multi_pollinate(commands.Cog):
                 interaction,
                 "Timeout Error",
                 config.ui.error_messages["timeout"],
+                delete_after_minutes=2,
             )
 
         elif isinstance(error, NoImagesGeneratedError):
@@ -298,6 +299,7 @@ class Multi_pollinate(commands.Cog):
                 interaction,
                 "Generation Failed",
                 f"Failed to generate any images:\n```\n{str(error)}\n```",
+                delete_after_minutes=2,
             )
 
         elif isinstance(error, PromptTooLongError):
@@ -305,6 +307,7 @@ class Multi_pollinate(commands.Cog):
                 interaction,
                 "Prompt Too Long",
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=0.5,
             )
 
         elif isinstance(error, APIError):
@@ -312,6 +315,7 @@ class Multi_pollinate(commands.Cog):
                 interaction,
                 "Couldn't Generate the Requested Image 😔",
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=2,
             )
 
         elif isinstance(error, DimensionTooSmallError):
@@ -319,6 +323,7 @@ class Multi_pollinate(commands.Cog):
                 interaction,
                 "Dimensions Too Small",
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=0.5,
             )
 
         else:
@@ -326,6 +331,7 @@ class Multi_pollinate(commands.Cog):
                 interaction,
                 config.ui.error_messages["unknown"],
                 f"```\n{str(error)}\n```",
+                delete_after_minutes=2,
             )
 
 
