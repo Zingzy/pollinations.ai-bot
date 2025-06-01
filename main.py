@@ -45,6 +45,11 @@ commands_: dict[str, str] = {
 - **nologo** 🚫 : Specifies whether to remove the logo from the generated images (deafault False)
 - **private** 🔒 : when set to True the generated Image will only be visible to you
 """,
+    f"</cross-pollinate:{config.bot.commands['cross_pollinate_id']}> 🐝": """Cross-pollinate images with AI using worker bees
+- **image** 🖼️ : The image file you want to cross-pollinate (upload an image)
+- **prompt** 🗣️ : Describe how you want to modify the image
+- **private** 🔒 : when set to True the cross-pollinated image will only be visible to you
+""",
     f"</help:{config.bot.commands['help_id']}> ❓": "Displays this",
     f"</invite:{config.bot.commands['invite_id']}> 📨": "Invite the bot to your server",
     f"</about:{config.bot.commands['about_id']}> ℹ️": "About the bot",
@@ -77,7 +82,7 @@ class pollinationsBot(commands.Bot):
         await bot.change_presence(
             activity=discord.CustomActivity(
                 name="Custom Status",
-                state="/pollinate to generate AI images",
+                state="/pollinate to generate AI images • /cross-pollinate to edit images",
             )
         )
         if not self.synced:
@@ -122,7 +127,7 @@ async def on_message(message) -> None:
 
     if bot.user in message.mentions and message.type is not discord.MessageType.reply:
         embed = discord.Embed(
-            description=f"Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:{config.bot.commands['pollinate_id']}> or </multi-pollinate:{config.bot.commands['multi_pollinate_id']}> or type `/help` for more commands**.",
+            description=f"Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:{config.bot.commands['pollinate_id']}> or </multi-pollinate:{config.bot.commands['multi_pollinate_id']}>, to Cross-Pollinate Images click </cross-pollinate:{config.bot.commands['cross_pollinate_id']}>, or type `/help` for more commands**.",
             color=int(config.ui.colors.success, 16),
         )
 

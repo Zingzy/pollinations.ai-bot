@@ -10,6 +10,7 @@ random_id = ""
 help_id = ""
 invite_id = ""
 about_id = ""
+cross_pollinate_id = ""
 
 [bot.emojis]   # emojis used in the bot
 github_emoji_id = ""
@@ -68,6 +69,14 @@ default_height = 1000
 [commands.random.cooldown]
 rate = 1
 seconds = 10
+
+[commands.cross-pollinate]
+default_width = 1000
+default_height = 1000
+
+[commands.cross-pollinate.cooldown]
+rate = 1
+seconds = 15
 
 [ui]
 bot_invite_url = ""
