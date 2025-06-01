@@ -11,6 +11,7 @@ help_id = ""
 invite_id = ""
 about_id = ""
 cross_pollinate_id = ""
+beemoji_id = ""
 
 [bot.emojis]   # emojis used in the bot
 github_emoji_id = ""
@@ -77,6 +78,14 @@ default_height = 1000
 [commands.cross-pollinate.cooldown]
 rate = 1
 seconds = 15
+
+[commands.beemoji]
+default_width = 80
+default_height = 80
+
+[commands.beemoji.cooldown]
+rate = 1
+seconds = 30
 
 [ui]
 bot_invite_url = ""

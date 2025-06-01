@@ -51,6 +51,11 @@ commands_: dict[str, str] = {
 - **prompt** 🗣️ : Describe how you want to modify the image
 - **private** 🔒 : when set to True the cross-pollinated image will only be visible to you
 """,
+    f"</beemoji:{config.bot.commands['beemoji_id']}> 🐝": """Generate a remixed emoji from two input emojis
+- **emoji1** 😀 : First emoji to remix (can be Unicode emoji or custom Discord emoji)
+- **emoji2** 🎉 : Second emoji to remix (can be Unicode emoji or custom Discord emoji)
+- **private** 🔒 : when set to True the generated beemoji will only be visible to you
+""",
     f"</help:{config.bot.commands['help_id']}> ❓": "Displays this",
     f"</invite:{config.bot.commands['invite_id']}> 📨": "Invite the bot to your server",
     f"</about:{config.bot.commands['about_id']}> ℹ️": "About the bot",
@@ -83,7 +88,7 @@ class pollinationsBot(commands.Bot):
         await bot.change_presence(
             activity=discord.CustomActivity(
                 name="Custom Status",
-                state="/pollinate to generate AI images • /cross-pollinate to edit images",
+                state="/pollinate to generate AI images • /cross-pollinate to edit images • /beemoji to remix emojis",
             )
         )
         if not self.synced:
