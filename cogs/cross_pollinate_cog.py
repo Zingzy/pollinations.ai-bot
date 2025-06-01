@@ -450,12 +450,7 @@ async def generate_cross_pollinate_embed(
     embed.set_image(url=f"attachment://{file_name}")
 
     if not private:
-        embed.set_footer(
-            text=f"🐝 Cross-pollinated by {interaction.user.display_name}",
-            icon_url=interaction.user.avatar.url
-            if interaction.user.avatar
-            else interaction.user.default_avatar.url,
-        )
+        embed.set_user_footer(interaction, "🐝 Cross-pollinated by")
 
     return embed
 

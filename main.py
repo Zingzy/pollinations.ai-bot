@@ -9,6 +9,7 @@ from config import config
 from utils.logger import discord_logger, logger
 from utils.fs import list_py_files
 from utils.models import fetch_and_log_models
+from utils.embed_utils import SafeEmbed
 import traceback
 
 load_dotenv(override=True)
@@ -126,7 +127,7 @@ async def on_message(message) -> None:
         return
 
     if bot.user in message.mentions and message.type is not discord.MessageType.reply:
-        embed = discord.Embed(
+        embed = SafeEmbed(
             description=f"Hello, I am the Pollinations.ai Bot. I am here to help you with your AI needs. **To Generate Images click </pollinate:{config.bot.commands['pollinate_id']}> or </multi-pollinate:{config.bot.commands['multi_pollinate_id']}>, to Cross-Pollinate Images click </cross-pollinate:{config.bot.commands['cross_pollinate_id']}>, or type `/help` for more commands**.",
             color=int(config.ui.colors.success, 16),
         )
@@ -212,7 +213,7 @@ async def on_command_error(ctx, error):
 
     # Send error message to user
     await ctx.send(
-        embed=discord.Embed(
+        embed=SafeEmbed(
             title="Error", description=str(error), color=int(config.ui.colors.error, 16)
         ),
     )
@@ -227,7 +228,7 @@ async def before_invoke(ctx) -> None:
 @bot.command()
 async def ping(ctx) -> None:
     try:
-        embed = discord.Embed(title="Pong!", color=int(config.ui.colors.success, 16))
+        embed = SafeEmbed(title="Pong!", color=int(config.ui.colors.success, 16))
         message = await ctx.send(embed=embed)
 
         end: float = time.perf_counter()
@@ -256,10 +257,7 @@ async def ping(ctx) -> None:
             value=f"{hours} hours {minutes} minutes {seconds} seconds",
             inline=False,
         )
-        embed.set_footer(
-            text=f"Information requested by: {ctx.author.name}",
-            icon_url=ctx.author.avatar.url,
-        )
+        embed.set_user_footer_with_text(ctx, f"Information requested by: {ctx.author.name}")
         embed.set_thumbnail(
             url="https://uploads.poxipage.com/7q5iw7dwl5jc3zdjaergjhpat27tws8bkr9fgy45_938843265627717703-webp"
         )
@@ -274,7 +272,7 @@ async def ping(ctx) -> None:
             context={"command": "ping"},
         )
         await ctx.send(
-            embed=discord.Embed(
+            embed=SafeEmbed(
                 title="Error",
                 description="An error occurred while processing the command.",
                 color=int(config.ui.colors.error, 16),
@@ -290,7 +288,7 @@ async def help(ctx) -> None:
     except AttributeError:
         profilePicture = config.bot.avatar_url
 
-    embed = discord.Embed(
+    embed = SafeEmbed(
         title="Pollinations.ai Bot Commands",
         description="Here is the list of the available commands:",
         color=int(config.ui.colors.success, 16),
@@ -300,27 +298,21 @@ async def help(ctx) -> None:
     for i in commands_.keys():
         embed.add_field(name=i, value=commands_[i], inline=False)
 
-    embed.set_footer(
-        text=f"Information requested by: {ctx.author.name}",
-        icon_url=ctx.author.avatar.url,
-    )
+    embed.set_user_footer_with_text(ctx, f"Information requested by: {ctx.author.name}")
 
     await ctx.send(embed=embed)
 
 
 @bot.hybrid_command(name="invite", description="Invite the bot to your server")
 async def invite(ctx) -> None:
-    embed = discord.Embed(
+    embed = SafeEmbed(
         title="Invite the bot to your server",
         url=config.ui.bot_invite_url,
         description="Click the link above to invite the bot to your server",
         color=int(config.ui.colors.success, 16),
     )
 
-    embed.set_footer(
-        text=f"Information requested by: {ctx.author.name}",
-        icon_url=ctx.author.avatar.url,
-    )
+    embed.set_user_footer_with_text(ctx, f"Information requested by: {ctx.author.name}")
 
     await ctx.send(embed=embed)
 
@@ -333,7 +325,7 @@ async def about(ctx) -> None:
     except AttributeError:
         profilePicture = config.bot.avatar_url
 
-    embed = discord.Embed(
+    embed = SafeEmbed(
         title="About Pollinations.ai Bot 🙌",
         url=config.ui.api_provider_url,
         description="I am the official Pollinations.ai Bot. I can generate AI Images from your prompts ✨.",
@@ -391,6 +383,8 @@ async def about(ctx) -> None:
         icon_url=config.ui.bot_creator_avatar,
     )
 
+    embed.set_user_footer_with_text(ctx, f"Information requested by: {ctx.author.name}")
+
     await ctx.send(embed=embed)
 
 
@@ -402,7 +396,7 @@ async def models(ctx) -> None:
     except AttributeError:
         profilePicture = config.bot.avatar_url
 
-    embed = discord.Embed(
+    embed = SafeEmbed(
         title="🤖 Available AI Models",
         description="Here are all the AI models currently available for image generation:",
         color=int(config.ui.colors.success, 16),
@@ -450,12 +444,7 @@ async def models(ctx) -> None:
         inline=False,
     )
 
-    embed.set_footer(
-        text=f"Information requested by: {ctx.author.name} • Models last updated",
-        icon_url=ctx.author.avatar.url
-        if ctx.author.avatar
-        else ctx.author.default_avatar.url,
-    )
+    embed.set_user_footer_with_text(ctx, f"Information requested by: {ctx.author.name} • Models last updated")
 
     await ctx.send(embed=embed)
 
