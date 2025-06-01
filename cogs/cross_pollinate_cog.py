@@ -17,9 +17,191 @@ from utils.logger import discord_logger
 from exceptions import PromptTooLongError, APIError
 
 
+class EditImageModal(discord.ui.Modal, title="Edit Image"):
+    def __init__(self, original_image_url: str, original_prompt: str):
+        super().__init__()
+        self.original_image_url = original_image_url
+        self.original_prompt = original_prompt
+
+    edit_prompt = discord.ui.TextInput(
+        label="Edit Prompt",
+        placeholder="Describe how you want to modify the image...",
+        style=discord.TextStyle.paragraph,
+        max_length=500,
+        required=True,
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            # Validate the prompt
+            validate_prompt(self.edit_prompt.value)
+            
+            await interaction.response.defer(thinking=True)
+            
+            start = datetime.datetime.now()
+            discord_logger.log_image_generation(
+                action="edit_start",
+                model="gptimage",
+                dimensions={"width": 0, "height": 0},
+                generation_time=0,
+                status="started",
+                cached=False,
+            )
+
+            # Use cross-pollinate functionality to edit the image
+            dic, edited_image = await generate_cross_pollinate(
+                prompt=self.edit_prompt.value,
+                image_url=self.original_image_url,
+                nologo=config.image_generation.defaults.nologo
+            )
+            
+            time_taken = (datetime.datetime.now() - start).total_seconds()
+            discord_logger.log_image_generation(
+                action="edit_complete",
+                model="gptimage",
+                dimensions={"width": 0, "height": 0},
+                generation_time=time_taken,
+                status="success",
+                cached=False,
+            )
+
+            # Create the file attachment
+            image_file = discord.File(edited_image, filename="edited_image.png")
+            if dic.get("nsfw", False):
+                image_file.filename = f"SPOILER_{image_file.filename}"
+
+            time_taken_delta = datetime.datetime.now() - start
+            embed = await generate_cross_pollinate_embed(
+                interaction, False, dic, time_taken_delta, self.edit_prompt.value, self.original_image_url, image_file.filename
+            )
+
+            # Send the edited image with cross-pollinate buttons
+            view = CrossPollinateButtonView()
+            await interaction.followup.send(embed=embed, view=view, file=image_file)
+
+        except PromptTooLongError as e:
+            discord_logger.log_error(
+                error_type="validation_error",
+                error_message=str(e),
+                context={"action": "edit_image", "error_type": "prompt_too_long"},
+            )
+            await interaction.followup.send(
+                embed=SafeEmbed(
+                    title="🎨 Prompt Too Long",
+                    description=f"```\n{str(e)}\n```",
+                    color=int(config.ui.colors.error, 16),
+                ),
+                ephemeral=True,
+            )
+        except APIError as e:
+            discord_logger.log_error(
+                error_type="api_error",
+                error_message=str(e),
+                context={"action": "edit_image"},
+            )
+            await interaction.followup.send(
+                embed=SafeEmbed(
+                    title="🎨 Couldn't Edit the Image 😔",
+                    description=f"```\n{str(e)}\n```",
+                    color=int(config.ui.colors.error, 16),
+                ),
+                ephemeral=True,
+            )
+        except Exception as e:
+            discord_logger.log_error(
+                error_type="edit_error",
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={
+                    "action": "edit_image",
+                    "user_id": interaction.user.id,
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
+            )
+            await interaction.followup.send(
+                embed=SafeEmbed(
+                    title="🎨 Error Editing Image",
+                    description=f"```\n{str(e)}\n```",
+                    color=int(config.ui.colors.error, 16),
+                ),
+                ephemeral=True,
+            )
+
+
 class CrossPollinateButtonView(discord.ui.View):
     def __init__(self) -> None:
         super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Edit",
+        style=discord.ButtonStyle.secondary,
+        custom_id="edit-button",
+        emoji=f"<:edit:{config.bot.emojis['edit_emoji_id']}>",
+    )
+    async def edit(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            # Check if gptimage model is available
+            if "gptimage" not in config.MODELS:
+                await interaction.response.send_message(
+                    embed=SafeEmbed(
+                        title="🎨 Model Unavailable",
+                        description="The gptimage model is currently not available for editing. Please try again later.",
+                        color=int(config.ui.colors.warning, 16),
+                    ),
+                    ephemeral=True,
+                )
+                return
+
+            # Get the original image URL from the message embed
+            if not interaction.message.embeds or not interaction.message.embeds[0].image:
+                await interaction.response.send_message(
+                    embed=SafeEmbed(
+                        title="🎨 No Image Found",
+                        description="Could not find the original image to edit.",
+                        color=int(config.ui.colors.error, 16),
+                    ),
+                    ephemeral=True,
+                )
+                return
+            
+            original_image_url = interaction.message.embeds[0].image.url
+            
+            # Get the original prompt based on the embed fields
+            interaction_data: dict = interaction.message.embeds[0].to_dict()
+            
+            # Check if it's a cross-pollinate embed or regular pollinate embed
+            prompt_field = None
+            for field in interaction_data.get("fields", []):
+                if field["name"] in ["Cross-Pollinate Prompt 🐝", "Prompt"]:
+                    prompt_field = field
+                    break
+            
+            original_prompt: str = (
+                prompt_field["value"][3:-3] if prompt_field else "Unknown prompt"
+            )
+            
+            # Show the edit modal
+            modal = EditImageModal(original_image_url, original_prompt)
+            await interaction.response.send_modal(modal)
+            
+        except Exception as e:
+            discord_logger.log_error(
+                error_type="edit_button_error",
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={
+                    "user_id": interaction.user.id,
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
+            )
+            await interaction.response.send_message(
+                embed=SafeEmbed(
+                    title="🎨 Error Opening Edit Dialog",
+                    description=f"```\n{str(e)}\n```",
+                    color=int(config.ui.colors.error, 16),
+                ),
+                ephemeral=True,
+            )
 
     @discord.ui.button(
         style=discord.ButtonStyle.red,
@@ -221,6 +403,7 @@ async def generate_cross_pollinate_embed(
     time_taken: datetime.timedelta,
     prompt: str,
     original_image_url: str,
+    file_name: str,
 ) -> SafeEmbed:
     """Generate embed for cross-pollinate results"""
 
@@ -243,7 +426,7 @@ async def generate_cross_pollinate_embed(
     )
 
     embed.add_field(
-        name="⏱️ Processing Time",
+        name="Processing Time",
         value=f"```{time_taken.total_seconds():.2f}s```",
         inline=True,
     )
@@ -255,7 +438,7 @@ async def generate_cross_pollinate_embed(
     )
 
     # Always use attachment reference since we send file attachments for both private and public
-    embed.set_image(url="attachment://cross_pollinated_image.png")
+    embed.set_image(url=f"attachment://{file_name}")
 
     if not private:
         embed.set_footer(
@@ -369,7 +552,7 @@ class CrossPollinate(commands.Cog):
 
             time_taken_delta: datetime.timedelta = datetime.datetime.now() - start
             embed: SafeEmbed = await generate_cross_pollinate_embed(
-                interaction, private, dic, time_taken_delta, prompt, image_url
+                interaction, private, dic, time_taken_delta, prompt, image_url, image_file.filename
             )
 
             if private:

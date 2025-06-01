@@ -200,7 +200,7 @@ async def generate_pollinate_embed(
 
     embed.add_field(name="Seed", value=f"```{dic['seed']}```", inline=True)
     embed.add_field(
-        name="Time Taken",
+        name="Processing Time",
         value=f"```{round(time_taken.total_seconds(), 2)} s```",
         inline=True,
     )

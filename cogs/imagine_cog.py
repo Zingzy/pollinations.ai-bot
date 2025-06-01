@@ -16,6 +16,9 @@ from utils.error_handler import send_error_embed
 from utils.logger import discord_logger
 from exceptions import DimensionTooSmallError, PromptTooLongError, APIError
 
+# Import cross-pollinate functionality for edit button
+from cogs.cross_pollinate_cog import EditImageModal
+
 
 class ImagineButtonView(discord.ui.View):
     def __init__(self) -> None:
@@ -125,6 +128,67 @@ class ImagineButtonView(discord.ui.View):
             file=image_file,
             view=ImagineButtonView(),
         )
+
+    @discord.ui.button(
+        label="Edit",
+        style=discord.ButtonStyle.secondary,
+        custom_id="edit-button",
+        emoji=f"<:edit:{config.bot.emojis['edit_emoji_id']}>",
+    )
+    async def edit(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            # Check if gptimage model is available
+            if "gptimage" not in config.MODELS:
+                await interaction.response.send_message(
+                    embed=SafeEmbed(
+                        title="🎨 Model Unavailable",
+                        description="The gptimage model is currently not available for editing. Please try again later.",
+                        color=int(config.ui.colors.warning, 16),
+                    ),
+                    ephemeral=True,
+                )
+                return
+
+            # Get the original image URL from the message embed
+            if not interaction.message.embeds or not interaction.message.embeds[0].image:
+                await interaction.response.send_message(
+                    embed=SafeEmbed(
+                        title="🎨 No Image Found",
+                        description="Could not find the original image to edit.",
+                        color=int(config.ui.colors.error, 16),
+                    ),
+                    ephemeral=True,
+                )
+                return
+            
+            original_image_url = interaction.message.embeds[0].image.url
+            
+            # Get the original prompt
+            interaction_data: dict = interaction.message.embeds[0].to_dict()
+            original_prompt: str = interaction_data["fields"][0]["value"][3:-3]
+            
+            # Show the edit modal
+            modal = EditImageModal(original_image_url, original_prompt)
+            await interaction.response.send_modal(modal)
+            
+        except Exception as e:
+            discord_logger.log_error(
+                error_type="edit_button_error",
+                error_message=str(e),
+                traceback=traceback.format_exc(),
+                context={
+                    "user_id": interaction.user.id,
+                    "guild_id": interaction.guild_id if interaction.guild else None,
+                },
+            )
+            await interaction.response.send_message(
+                embed=SafeEmbed(
+                    title="🎨 Error Opening Edit Dialog",
+                    description=f"```\n{str(e)}\n```",
+                    color=int(config.ui.colors.error, 16),
+                ),
+                ephemeral=True,
+            )
 
     @discord.ui.button(
         style=discord.ButtonStyle.red,
@@ -327,13 +391,14 @@ class Imagine(commands.Cog):
             if dic["nsfw"]:
                 image_file.filename = f"SPOILER_{image_file.filename}"
             time_taken_delta: datetime.timedelta = datetime.datetime.now() - start
-            view: discord.ui.View = ImagineButtonView()
             embed: SafeEmbed = await generate_pollinate_embed(
                 interaction, private, dic, time_taken_delta
             )
             if private:
                 await interaction.followup.send(embed=embed, ephemeral=True)
             else:
+                # Use ImagineButtonView for public images to get edit functionality
+                view: discord.ui.View = ImagineButtonView()
                 await interaction.followup.send(embed=embed, view=view, file=image_file)
         except Exception as e:
             discord_logger.log_error(
