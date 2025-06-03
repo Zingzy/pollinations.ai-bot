@@ -7,6 +7,8 @@ import aiohttp
 import re
 import io
 from urllib.parse import quote
+from PIL import Image
+import asyncio
 
 from config import config
 from utils.embed_utils import SafeEmbed
@@ -26,6 +28,19 @@ class BeemojiButtonView(discord.ui.View):
         self.emoji1_name = emoji1_name
         self.emoji2_name = emoji2_name
         self.generated_name = generated_name
+
+    async def reduce_image_size(
+        self, image_data: bytes, width: int, height: int
+    ) -> bytes:
+        """Reduce the size of the image to the given width and height"""
+        loop = asyncio.get_event_loop()
+        image = await loop.run_in_executor(None, Image.open, io.BytesIO(image_data))
+        image = await loop.run_in_executor(
+            None, lambda: image.resize((width, height), Image.Resampling.LANCZOS)
+        )
+        buffer = io.BytesIO()
+        await loop.run_in_executor(None, lambda: image.save(buffer, format="PNG"))
+        return buffer.getvalue()
 
     @discord.ui.button(
         label="Edit",
@@ -140,20 +155,15 @@ class BeemojiButtonView(discord.ui.View):
                         )
 
                     image_data = await response.read()
+                    # reduce the size of the image to 80x80 pixels
+                    image_data = await self.reduce_image_size(image_data, 80, 80)
 
-            # Use the generated emoji name or create a fallback
-            if self.generated_name:
+            emoji_name = (
+                interaction.message.embeds[0].fields[1].value.split("```")[1].strip()
+            )
+
+            if not emoji_name:
                 emoji_name = self.generated_name
-            else:
-                # Fallback: Create emoji name from the two input emojis
-                emoji_name = f"beemoji_{self.emoji1_name}_{self.emoji2_name}".replace(
-                    " ", "_"
-                )[:32]
-                # Remove any non-alphanumeric characters except underscores
-                emoji_name = re.sub(r"[^a-zA-Z0-9_]", "", emoji_name)
-                # Ensure it doesn't start with a number
-                if emoji_name and emoji_name[0].isdigit():
-                    emoji_name = f"beemoji_{emoji_name}"
 
             # Add emoji to server
             emoji = await interaction.guild.create_custom_emoji(
@@ -161,6 +171,10 @@ class BeemojiButtonView(discord.ui.View):
                 image=image_data,
                 reason=f"Beemoji created by {interaction.user}",
             )
+
+            # disable the add to server button
+            button.disabled = True
+            await interaction.message.edit(view=self)
 
             discord_logger.log_bot_event(
                 action="beemoji_add_to_server",
@@ -175,7 +189,7 @@ class BeemojiButtonView(discord.ui.View):
             await interaction.followup.send(
                 embed=SafeEmbed(
                     title="✅ Emoji Added Successfully!",
-                    description=f"The beemoji has been added to the server as {emoji}",
+                    description=f"The beemoji has been added to the server as {emoji} `:{emoji_name}:`",
                     color=int(config.ui.colors.success, 16),
                 ),
                 ephemeral=True,
@@ -342,7 +356,7 @@ async def generate_emoji_name(emoji1_name: str, emoji2_name: str) -> str:
     """Generate a creative name for the beemoji using text.pollinations.ai"""
     try:
         # Create a prompt for generating a creative emoji name
-        prompt = f"Create a single creative emoji name (maximum 32 characters, no spaces, use underscores) that combines {emoji1_name} and {emoji2_name}. Only return the name, nothing else."
+        prompt = f"Create a single creative emoji name (maximum 32 characters, no spaces, use underscores) that combines {emoji1_name} and {emoji2_name}. Only return the name, nothing else. It can be a single word, and it should not be too long."
 
         # URL encode the prompt
         encoded_prompt = quote(prompt, safe="")
@@ -396,7 +410,7 @@ async def generate_beemoji(
     """Generate a remixed emoji using the gptimage model"""
 
     # Create a prompt for mixing the two emojis
-    prompt = f"Create a small cute remix combining elements of {emoji1_name} and {emoji2_name} emojis, 80x80 pixels, clean simple style, keep the background completely transparent. dont add fake transparent background"
+    prompt = f"Create a small remix combining elements of {emoji1_name} and {emoji2_name} emojis, 80x80 pixels, try to preserve the styles of the original emojis by making a blend of the two."
 
     # Use the first emoji as the base image and the second as reference in the prompt
     encoded_image = quote(emoji1_url, safe="")
@@ -408,6 +422,7 @@ async def generate_beemoji(
     url += "&width=80&height=80"
     url += "&nologo=true"
     url += f"&referer={config.image_generation.referer}"
+    url += "&transparent=true"
 
     dic = {
         "prompt": prompt,
@@ -430,6 +445,14 @@ async def generate_beemoji(
                 url, allow_redirects=True, headers=headers
             ) as response:
                 if response.status >= 500:
+                    discord_logger.log_error(
+                        error_type="server_error",
+                        error_message=f"Server error occurred while generating beemoji with status code: {response.status}\nPlease try again later",
+                        context={
+                            "url": url,
+                            "headers": headers,
+                        },
+                    )
                     raise APIError(
                         f"Server error occurred while generating beemoji with status code: {response.status}\nPlease try again later"
                     )
