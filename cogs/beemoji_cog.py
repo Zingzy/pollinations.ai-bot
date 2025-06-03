@@ -11,7 +11,7 @@ from PIL import Image
 import asyncio
 
 from config import config
-from utils.embed_utils import SafeEmbed
+from utils.embed_utils import SafeEmbed, generate_error_message
 from utils.error_handler import send_error_embed
 from utils.logger import discord_logger
 from exceptions import APIError
@@ -52,13 +52,11 @@ class BeemojiButtonView(discord.ui.View):
         try:
             # Check if gptimage model is available
             if "gptimage" not in config.MODELS:
-                await interaction.response.send_message(
-                    embed=SafeEmbed(
-                        title="🎨 Model Unavailable",
-                        description="The gptimage model is currently not available for editing. Please try again later.",
-                        color=int(config.ui.colors.warning, 16),
-                    ),
-                    ephemeral=True,
+                await send_error_embed(
+                    interaction,
+                    "🎨 Model Unavailable",
+                    "The gptimage model is currently not available for editing. Please try again later.",
+                    delete_after_minutes=2,
                 )
                 return
 
@@ -67,13 +65,11 @@ class BeemojiButtonView(discord.ui.View):
                 not interaction.message.embeds
                 or not interaction.message.embeds[0].thumbnail
             ):
-                await interaction.response.send_message(
-                    embed=SafeEmbed(
-                        title="🎨 No Image Found",
-                        description="Could not find the original emoji to edit.",
-                        color=int(config.ui.colors.error, 16),
-                    ),
-                    ephemeral=True,
+                await send_error_embed(
+                    interaction,
+                    "🎨 No Image Found",
+                    "Could not find the original emoji to edit.",
+                    delete_after_minutes=1,
                 )
                 return
 
@@ -96,13 +92,11 @@ class BeemojiButtonView(discord.ui.View):
                     "guild_id": interaction.guild_id if interaction.guild else None,
                 },
             )
-            await interaction.response.send_message(
-                embed=SafeEmbed(
-                    title="🎨 Error Opening Edit Dialog",
-                    description=f"```\n{str(e)}\n```",
-                    color=int(config.ui.colors.error, 16),
-                ),
-                ephemeral=True,
+            await send_error_embed(
+                interaction,
+                "🎨 Error Opening Edit Dialog",
+                f"```\n{str(e)}\n```",
+                delete_after_minutes=2,
             )
 
     @discord.ui.button(
@@ -117,13 +111,11 @@ class BeemojiButtonView(discord.ui.View):
         try:
             # Check if user has manage emojis permission
             if not interaction.user.guild_permissions.manage_emojis:
-                await interaction.response.send_message(
-                    embed=SafeEmbed(
-                        title="❌ Insufficient Permissions",
-                        description="You need the 'Manage Emojis and Stickers' permission to add emojis to this server.",
-                        color=int(config.ui.colors.error, 16),
-                    ),
-                    ephemeral=True,
+                await send_error_embed(
+                    interaction,
+                    "❌ Insufficient Permissions",
+                    "You need the 'Manage Emojis and Stickers' permission to add emojis to this server.",
+                    delete_after_minutes=1,
                 )
                 return
 
@@ -132,13 +124,11 @@ class BeemojiButtonView(discord.ui.View):
                 not interaction.message.embeds
                 or not interaction.message.embeds[0].thumbnail
             ):
-                await interaction.response.send_message(
-                    embed=SafeEmbed(
-                        title="❌ No Image Found",
-                        description="Could not find the emoji image to add to server.",
-                        color=int(config.ui.colors.error, 16),
-                    ),
-                    ephemeral=True,
+                await send_error_embed(
+                    interaction,
+                    "❌ No Image Found",
+                    "Could not find the emoji image to add to server.",
+                    delete_after_minutes=1,
                 )
                 return
 
@@ -212,13 +202,11 @@ class BeemojiButtonView(discord.ui.View):
                 },
             )
 
-            await interaction.followup.send(
-                embed=SafeEmbed(
-                    title="❌ Failed to Add Emoji",
-                    description=f"```\n{error_message}\n```",
-                    color=int(config.ui.colors.error, 16),
-                ),
-                ephemeral=True,
+            await send_error_embed(
+                interaction,
+                "❌ Failed to Add Emoji",
+                f"```\n{error_message}\n```",
+                delete_after_minutes=2,
             )
         except Exception as e:
             discord_logger.log_error(
@@ -230,13 +218,11 @@ class BeemojiButtonView(discord.ui.View):
                     "guild_id": interaction.guild_id if interaction.guild else None,
                 },
             )
-            await interaction.followup.send(
-                embed=SafeEmbed(
-                    title="❌ Error Adding Emoji",
-                    description=f"```\n{str(e)}\n```",
-                    color=int(config.ui.colors.error, 16),
-                ),
-                ephemeral=True,
+            await send_error_embed(
+                interaction,
+                "❌ Error Adding Emoji",
+                f"```\n{str(e)}\n```",
+                delete_after_minutes=2,
             )
 
     @discord.ui.button(
@@ -260,13 +246,11 @@ class BeemojiButtonView(discord.ui.View):
                         "guild_id": interaction.guild_id if interaction.guild else None,
                     },
                 )
-                await interaction.response.send_message(
-                    embed=SafeEmbed(
-                        title="Error",
-                        description=config.ui.error_messages["delete_unauthorized"],
-                        color=int(config.ui.colors.error, 16),
-                    ),
-                    ephemeral=True,
+                await send_error_embed(
+                    interaction,
+                    "Error",
+                    config.ui.error_messages["delete_unauthorized"],
+                    delete_after_minutes=1,
                 )
                 return
 
@@ -290,13 +274,11 @@ class BeemojiButtonView(discord.ui.View):
                     "guild_id": interaction.guild_id if interaction.guild else None,
                 },
             )
-            await interaction.response.send_message(
-                embed=SafeEmbed(
-                    title="Error Deleting the Beemoji",
-                    description=f"{e}",
-                    color=int(config.ui.colors.error, 16),
-                ),
-                ephemeral=True,
+            await send_error_embed(
+                interaction,
+                "Error Deleting the Beemoji",
+                f"```\n{str(e)}\n```",
+                delete_after_minutes=2,
             )
             return
 
@@ -562,13 +544,11 @@ class Beemoji(commands.Cog):
         try:
             # Check if gptimage model is available
             if "gptimage" not in config.MODELS:
-                await interaction.response.send_message(
-                    embed=SafeEmbed(
-                        title="🎨 Model Unavailable",
-                        description="The gptimage model is currently not available. Please try again later.",
-                        color=int(config.ui.colors.warning, 16),
-                    ),
-                    ephemeral=True,
+                await send_error_embed(
+                    interaction,
+                    "🎨 Model Unavailable",
+                    "The gptimage model is currently not available. Please try again later.",
+                    delete_after_minutes=2,
                 )
                 return
 
@@ -592,13 +572,11 @@ class Beemoji(commands.Cog):
                     )
 
             except ValueError as e:
-                await interaction.followup.send(
-                    embed=SafeEmbed(
-                        title="❌ Invalid Emoji Input",
-                        description=f"```\n{str(e)}\n```\n\nPlease provide valid emojis. You can use:\n• Unicode emojis: 😀 🎉 ❤️\n• Custom Discord emojis: :custom_emoji: or <:name:id>\n• Animated Discord emojis: <a:name:id>\n• Emoji IDs: 123456789\n\n**Note:** Animated emojis will be converted to static images for remixing.",
-                        color=int(config.ui.colors.error, 16),
-                    ),
-                    ephemeral=True,
+                await send_error_embed(
+                    interaction,
+                    "❌ Invalid Emoji Input",
+                    f"```\n{str(e)}\n```\n\nPlease provide valid emojis. You can use:\n• Unicode emojis: 😀 🎉 ❤️\n• Custom Discord emojis: :custom_emoji: or <:name:id>\n• Animated Discord emojis: <a:name:id>\n• Emoji IDs: 123456789\n\n**Note:** Animated emojis will be converted to static images for remixing.",
+                    delete_after_minutes=1,
                 )
                 return
 
@@ -659,13 +637,11 @@ class Beemoji(commands.Cog):
                 error_message=str(e),
                 context={"command": "beemoji"},
             )
-            await interaction.followup.send(
-                embed=SafeEmbed(
-                    title="🐝 Couldn't Generate Beemoji 😔",
-                    description=f"```\n{str(e)}\n```",
-                    color=int(config.ui.colors.error, 16),
-                ),
-                ephemeral=True,
+            await send_error_embed(
+                interaction,
+                "🐝 Couldn't Generate Beemoji 😔",
+                f"```\n{str(e)}\n```",
+                delete_after_minutes=2,
             )
         except Exception as e:
             discord_logger.log_error(
@@ -678,13 +654,11 @@ class Beemoji(commands.Cog):
                     "guild_id": interaction.guild_id if interaction.guild else None,
                 },
             )
-            await interaction.followup.send(
-                embed=SafeEmbed(
-                    title="🐝 Error Generating Beemoji",
-                    description=f"```\n{str(e)}\n```",
-                    color=int(config.ui.colors.error, 16),
-                ),
-                ephemeral=True,
+            await send_error_embed(
+                interaction,
+                "🐝 Error Generating Beemoji",
+                f"```\n{str(e)}\n```",
+                delete_after_minutes=2,
             )
 
     @beemoji_command.error
@@ -719,9 +693,6 @@ class Beemoji(commands.Cog):
                 value="- 1 time every 30 seconds",
                 inline=False,
             )
-
-            embed.set_user_footer(interaction, "🐝 Beemoji cooldown for")
-
             return await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
             discord_logger.log_error(
@@ -732,7 +703,7 @@ class Beemoji(commands.Cog):
             )
             await send_error_embed(
                 interaction,
-                "An unexpected error occurred",
+                "🐝 An unexpected error occurred",
                 f"```\n{str(error)}\n```",
                 delete_after_minutes=2,
             )
