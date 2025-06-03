@@ -11,7 +11,7 @@ from PIL import Image
 import asyncio
 
 from config import config
-from utils.embed_utils import SafeEmbed, generate_error_message
+from utils.embed_utils import SafeEmbed
 from utils.error_handler import send_error_embed
 from utils.logger import discord_logger
 from exceptions import APIError
