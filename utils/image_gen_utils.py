@@ -1,15 +1,13 @@
-import random
 import aiohttp
 import io
 import asyncio
+from typing import Tuple, Dict, Any
 from utils.logger import logger
-from urllib.parse import quote
-import json
-from PIL import Image
-from exceptions import PromptTooLongError, DimensionTooSmallError, APIError
+from utils.image_request_builder import ImageRequestBuilder
+from exceptions import APIError, DimensionTooSmallError, PromptTooLongError
 from config import config
-
-__all__: list[str] = ("generate_image", "validate_prompt", "validate_dimensions")
+from PIL import Image
+import json
 
 
 def validate_prompt(prompt) -> None:
@@ -26,47 +24,69 @@ def validate_dimensions(width, height) -> None:
 
 
 async def generate_image(
-    prompt: str = None,
-    width: int = config.image_generation.defaults.width,
-    height: int = config.image_generation.defaults.height,
-    model: str = config.MODELS[0],
-    safe: bool = config.image_generation.defaults.safe,
-    cached: bool = config.image_generation.defaults.cached,
-    nologo: bool = config.image_generation.defaults.nologo,
-    enhance: bool = config.image_generation.defaults.enhance,
-    private: bool = config.image_generation.defaults.private,
+    prompt: str,
+    width: int = None,
+    height: int = None,
+    model: str = None,
+    safe: bool = None,
+    cached: bool = None,
+    nologo: bool = None,
+    enhance: bool = None,
+    private: bool = None,
+    negative: str = None,
     **kwargs,
-):
-    logger.info(
-        f"Generating image with prompt: {prompt}, width: {width}, height: {height}, safe: {safe}, cached: {cached}, nologo: {nologo}, enhance: {enhance}, model: {model}"
-    )
+) -> Tuple[Dict[str, Any], io.BytesIO]:
+    """
+    Generate an image using the new ImageRequestBuilder.
 
-    seed = str(random.randint(0, 1000000000))
+    Args:
+        prompt: The text prompt for image generation
+        width: Image width (optional, uses default from config)
+        height: Image height (optional, uses default from config)
+        model: AI model to use (optional, uses default from config)
+        safe: Enable safety filter (optional, uses default from config)
+        cached: Use cached results (optional, uses default from config)
+        nologo: Remove logo (optional, uses default from config)
+        enhance: Enhance prompt (optional, uses default from config)
+        private: Private generation (optional, uses default from config)
+        negative: Negative prompt (optional)
+        **kwargs: Additional parameters
 
-    url: str = f"{config.api.image_gen_endpoint}/{prompt}"
-    url += "" if cached else f"?seed={seed}"
-    url += f"&width={width}"
-    url += f"&height={height}"
-    url += f"&model={model}" if model else ""
-    url += f"&safe={safe}" if safe else ""
-    url += f"&nologo={nologo}" if nologo else ""
-    url += f"&enhance={enhance}" if enhance else ""
-    url += f"&nofeed={private}" if private else ""
-    url += f"&referer={config.image_generation.referer}"
+    Returns:
+        Tuple of (request_data_dict, image_file_bytes)
+    """
 
-    dic = {
-        "prompt": prompt,
-        "width": width,
-        "height": height,
-        "model": model,
-        "safe": safe,
-        "cached": cached,
-        "nologo": nologo,
-        "enhance": enhance,
-        "url": quote(url, safe=":/&=?"),
-    }
+    # Build the request using the new builder
+    builder = ImageRequestBuilder.for_standard_generation(prompt)
 
-    dic["seed"] = None if cached else seed
+    # Apply optional parameters
+    if width is not None:
+        builder.with_dimensions(
+            width, height or config.image_generation.defaults.height
+        )
+    elif height is not None:
+        builder.with_dimensions(config.image_generation.defaults.width, height)
+
+    if model is not None:
+        builder.with_model(model)
+    if safe is not None:
+        builder.with_safety(safe)
+    if cached is not None:
+        builder.with_caching(cached)
+    if nologo is not None:
+        builder.with_logo(nologo)
+    if enhance is not None:
+        builder.with_enhancement(enhance)
+    if private is not None:
+        builder.with_privacy(private)
+    if negative is not None:
+        builder.with_negative_prompt(negative)
+
+    # Build the request
+    request_data = builder.build_request_data()
+    url = request_data["url"]
+
+    logger.info(f"Generating image with builder: {request_data}")
 
     headers = {
         "Authorization": f"Bearer {config.api.api_key}",
@@ -77,6 +97,7 @@ async def generate_image(
             async with session.get(
                 url, allow_redirects=True, headers=headers
             ) as response:
+                # Handle HTTP errors
                 if response.status >= 500:
                     raise APIError(
                         f"Server error occurred while generating image with status code: {response.status}\nPlease try again later"
@@ -93,37 +114,208 @@ async def generate_image(
                 image_data = await response.read()
 
                 if not image_data:
-                    raise APIError(
-                        response.status, "Received empty response from server"
-                    )
+                    raise APIError("Received empty response from server")
 
-                # Process image metadata asynchronously to avoid blocking
+                # Process image metadata asynchronously
                 user_comment = await _extract_user_comment_async(image_data)
 
                 image_file = io.BytesIO(image_data)
                 image_file.seek(0)
 
+                # Update request data with metadata
                 try:
-                    dic["nsfw"] = user_comment["has_nsfw_concept"]
+                    request_data["nsfw"] = user_comment["has_nsfw_concept"]
                     if (
                         enhance
                         or len(prompt)
                         < config.image_generation.validation.max_enhanced_prompt_length
                     ):
                         enhance_prompt = user_comment["prompt"]
-                        if enhance_prompt == prompt:
-                            dic["enhanced_prompt"] = None
-                        else:
+                        if enhance_prompt != prompt:
                             enhance_prompt = enhance_prompt[
                                 : enhance_prompt.rfind("\n")
                             ].strip()
-                            dic["enhanced_prompt"] = enhance_prompt
+                            request_data["enhanced_prompt"] = enhance_prompt
+                        else:
+                            request_data["enhanced_prompt"] = None
                 except Exception:
-                    dic["nsfw"] = False
+                    request_data["nsfw"] = False
 
-        return (dic, image_file)
+        return (request_data, image_file)
+
     except aiohttp.ClientError as e:
-        raise APIError(500, f"Network error occurred: {str(e)}")
+        raise APIError(f"Network error occurred: {str(e)}")
+
+
+async def generate_cross_pollinate(
+    prompt: str, image_url: str, nologo: bool = None
+) -> Tuple[Dict[str, Any], io.BytesIO]:
+    """
+    Generate a cross-pollinated/edited image using the new ImageRequestBuilder.
+
+    Args:
+        prompt: The edit prompt
+        image_url: URL of the source image
+        nologo: Remove logo (optional, uses default from config)
+
+    Returns:
+        Tuple of (request_data_dict, image_file_bytes)
+    """
+
+    # Build the request using the cross-pollination builder
+    builder = ImageRequestBuilder.for_cross_pollination(prompt, image_url)
+
+    if nologo is not None:
+        builder.with_logo(nologo)
+
+    # Build the request
+    request_data = builder.build_request_data()
+    url = request_data["url"]
+
+    logger.info(f"Cross-pollinating image with builder: {request_data}")
+
+    headers = {
+        "Authorization": f"Bearer {config.api.api_key}",
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url, allow_redirects=True, headers=headers
+            ) as response:
+                # Handle HTTP errors
+                if response.status >= 500:
+                    raise APIError(
+                        f"Server error occurred while editing image with status code: {response.status}\nPlease try again later"
+                    )
+                elif response.status == 429:
+                    raise APIError(config.ui.error_messages["rate_limit"])
+                elif response.status == 404:
+                    raise APIError(config.ui.error_messages["resource_not_found"])
+                elif response.status != 200:
+                    raise APIError(
+                        f"API request failed with status code: {response.status}",
+                    )
+
+                image_data = await response.read()
+
+                if not image_data:
+                    raise APIError("Received empty response from server")
+
+                image_file = io.BytesIO(image_data)
+                image_file.seek(0)
+
+                # Set basic metadata for cross-pollination
+                request_data["nsfw"] = False  # Default for editing
+
+        return (request_data, image_file)
+
+    except aiohttp.ClientError as e:
+        raise APIError(f"Network error occurred: {str(e)}")
+
+
+async def generate_random_image(
+    width: int = None,
+    height: int = None,
+    model: str = None,
+    negative: str = None,
+    nologo: bool = None,
+    private: bool = None,
+    **kwargs,
+) -> Tuple[Dict[str, Any], io.BytesIO]:
+    """
+    Generate a random image using the new ImageRequestBuilder.
+
+    Args:
+        width: Image width (optional, uses default from config)
+        height: Image height (optional, uses default from config)
+        model: AI model to use (optional, uses default from config)
+        negative: Negative prompt (optional)
+        nologo: Remove logo (optional, uses default from config)
+        private: Private generation (optional, uses default from config)
+        **kwargs: Additional parameters
+
+    Returns:
+        Tuple of (request_data_dict, image_file_bytes)
+    """
+
+    # Build the request using the random generation builder
+    builder = ImageRequestBuilder.for_random_generation()
+
+    # Apply optional parameters
+    if width is not None:
+        builder.with_dimensions(
+            width, height or config.image_generation.defaults.height
+        )
+    elif height is not None:
+        builder.with_dimensions(config.image_generation.defaults.width, height)
+
+    if model is not None:
+        builder.with_model(model)
+    if negative is not None:
+        builder.with_negative_prompt(negative)
+    if nologo is not None:
+        builder.with_logo(nologo)
+    if private is not None:
+        builder.with_privacy(private)
+
+    # Build the request
+    request_data = builder.build_request_data()
+    url = request_data["url"]
+
+    logger.info(f"Generating random image with builder: {request_data}")
+
+    headers = {
+        "Authorization": f"Bearer {config.api.api_key}",
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url, allow_redirects=True, headers=headers
+            ) as response:
+                # Handle HTTP errors
+                if response.status >= 500:
+                    raise APIError(
+                        f"Server error occurred while generating random image with status code: {response.status}\nPlease try again later"
+                    )
+                elif response.status == 429:
+                    raise APIError(config.ui.error_messages["rate_limit"])
+                elif response.status == 404:
+                    raise APIError(config.ui.error_messages["resource_not_found"])
+                elif response.status != 200:
+                    raise APIError(
+                        f"API request failed with status code: {response.status}",
+                    )
+
+                image_data = await response.read()
+
+                if not image_data:
+                    raise APIError("Received empty response from server")
+
+                # Process image metadata asynchronously
+                user_comment = await _extract_user_comment_async(image_data)
+
+                image_file = io.BytesIO(image_data)
+                image_file.seek(0)
+
+                # Update request data with metadata
+                try:
+                    request_data["nsfw"] = user_comment["has_nsfw_concept"]
+                    # For random images, always use the enhanced prompt
+                    enhance_prompt = user_comment["prompt"]
+                    if enhance_prompt:
+                        enhance_prompt = enhance_prompt[
+                            : enhance_prompt.rfind("\n")
+                        ].strip()
+                        request_data["enhanced_prompt"] = enhance_prompt
+                except Exception:
+                    request_data["nsfw"] = False
+
+        return (request_data, image_file)
+
+    except aiohttp.ClientError as e:
+        raise APIError(f"Network error occurred: {str(e)}")
 
 
 async def _extract_user_comment_async(image_bytes):
@@ -147,16 +339,3 @@ async def _extract_user_comment_async(image_bytes):
     # Run the CPU-intensive PIL operation in a thread pool
     return await loop.run_in_executor(None, _extract_sync)
 
-
-def _extract_user_comment(image_bytes):
-    """Synchronous fallback for extracting user comment (deprecated)"""
-    image = Image.open(io.BytesIO(image_bytes))
-
-    try:
-        exif = image.info["exif"].decode("latin-1", errors="ignore")
-        user_comment = json.loads(exif[exif.find("{") : exif.rfind("}") + 1])
-    except Exception:
-        logger.exception("Error extracting user comment from image EXIF data")
-        return "No user comment found."
-
-    return user_comment if user_comment else "No user comment found."
