@@ -4,7 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from config import config
-from utils.image_gen_utils import generate_cross_pollinate
+from utils.image_gen_utils import generate_cross_pollinate, validate_prompt
 from utils.embed_utils import SafeEmbed
 from views.cross_pollinate_view import CrossPollinateView
 from cogs.base_command_cog import BaseCommandCog

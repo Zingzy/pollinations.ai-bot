@@ -140,8 +140,8 @@ async def generate_beemoji(
     url += "&model=gptimage"
     url += "&width=80&height=80"
     url += "&nologo=true"
-    url += f"&referer={config.image_generation.referer}"
     url += "&transparent=true"
+    url += f"&referer={config.image_generation.referer}"
 
     dic = {
         "prompt": prompt,

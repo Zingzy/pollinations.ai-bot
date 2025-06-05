@@ -338,4 +338,3 @@ async def _extract_user_comment_async(image_bytes):
 
     # Run the CPU-intensive PIL operation in a thread pool
     return await loop.run_in_executor(None, _extract_sync)
-
