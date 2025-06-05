@@ -1,5 +1,5 @@
 import traceback
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Dict, Any, Optional
 
 import discord
@@ -18,7 +18,7 @@ from exceptions import (
 )
 
 
-class BaseCommandCog(commands.Cog, ABC):
+class BaseCommandCog(commands.Cog):
     """
     Base cog class for image generation commands.
     Provides common functionality like error handling, logging, and validation.
