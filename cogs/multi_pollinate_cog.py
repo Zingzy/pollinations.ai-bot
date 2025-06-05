@@ -2,122 +2,35 @@ import datetime
 import discord
 from discord import app_commands
 from discord.ext import commands
-import traceback
 import asyncio
 
 from config import config
-from utils.embed_utils import generate_error_message, SafeEmbed
+from utils.embed_utils import SafeEmbed
 from utils.image_gen_utils import generate_image, validate_dimensions, validate_prompt
-from utils.error_handler import send_error_embed
-from utils.logger import discord_logger
+from views.multi_pollinate_view import MultiPollinateView
+from cogs.base_command_cog import BaseCommandCog
 from exceptions import (
     NoImagesGeneratedError,
     ImageGenerationError,
-    PromptTooLongError,
-    DimensionTooSmallError,
-    APIError,
 )
 
 
-class multiImagineButtonView(discord.ui.View):
-    def __init__(self, image_count=4) -> None:
-        super().__init__(timeout=None)
+class Multi_pollinate(BaseCommandCog):
+    """Refactored multi-pollinate command using the new architecture."""
 
-        self.image_count: int = image_count
-        self.create_buttons()
-
-    def create_buttons(self) -> None:
-        for i in range(self.image_count):
-            self.add_item(
-                discord.ui.Button(
-                    label=f"U{i + 1}",
-                    style=discord.ButtonStyle.secondary,
-                    custom_id=f"U{i + 1}",
-                )
-            )
-        self.add_item(
-            discord.ui.Button(
-                label="",
-                style=discord.ButtonStyle.danger,
-                custom_id="multiimagine_delete",
-                emoji=f"<:delete:{config.bot.emojis['delete_emoji_id']}>",
-            )
-        )
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        custom_id = interaction.data["custom_id"]
-        if custom_id.startswith("U"):
-            index = int(custom_id[1]) - 1
-            await self.regenerate_image(interaction, index)
-            await self.disable_button(interaction, custom_id)
-            return True
-        elif custom_id == "multiimagine_delete":
-            await self.delete_image(interaction)
-            return True
-        return False
-
-    async def regenerate_image(self, interaction: discord.Interaction, index: int):
-        await interaction.response.defer(ephemeral=True)
-        embed, image = await Multi_pollinate.get_info(interaction, index)
-        await interaction.followup.send(embed=embed, file=image)
-
-    async def disable_button(self, interaction: discord.Interaction, custom_id: str):
-        for item in self.children:
-            if isinstance(item, discord.ui.Button) and item.custom_id == custom_id:
-                item.disabled = True
-                break
-
-        await interaction.message.edit(view=self)
-
-    async def delete_image(self, interaction: discord.Interaction):
-        try:
-            author_id: int = interaction.message.interaction_metadata.user.id
-
-            if interaction.user.id != author_id:
-                await interaction.response.send_message(
-                    embed=SafeEmbed(
-                        title="Error",
-                        description=config.ui.error_messages["delete_unauthorized"],
-                        color=int(config.ui.colors.error, 16),
-                    ),
-                    ephemeral=True,
-                )
-                return
-
-            return await interaction.message.delete()
-
-        except Exception as e:
-            discord_logger.log_error(
-                error_type="delete_error",
-                error_message=str(e),
-                traceback=traceback.format_exc(),
-                context={"user_id": interaction.user.id},
-            )
-            await interaction.response.send_message(
-                embed=SafeEmbed(
-                    title="Error Deleting the Image",
-                    description=f"{e}",
-                    color=int(config.ui.colors.error, 16),
-                ),
-                ephemeral=True,
-            )
-            return
-
-
-class Multi_pollinate(commands.Cog):
-    def __init__(self, bot) -> None:
-        self.bot = bot
-        self.command_config = config.commands["multi_pollinate"]
+    def __init__(self, bot: commands.Bot) -> None:
+        super().__init__(
+            bot, "multi_pollinate"
+        )  # Automatically loads config.commands.multi_pollinate
 
     async def cog_load(self) -> None:
-        await self.bot.wait_until_ready()
-        self.bot.add_view(multiImagineButtonView())
-        discord_logger.log_bot_event(
-            action="cog_load", status="success", details={"cog": "Multi_pollinate"}
-        )
+        """Setup the cog with the multi-pollinate view."""
+        await super().cog_load()  # Handles common setup + logging
+        self.bot.add_view(MultiPollinateView())
 
-    async def get_info(interaction: discord.Interaction, index: int) -> None:
-        return
+    def get_view_class(self):
+        """Return the view class for this command."""
+        return MultiPollinateView
 
     @app_commands.command(
         name="multi-pollinate", description="Imagine multiple prompts"
@@ -149,14 +62,26 @@ class Multi_pollinate(commands.Cog):
         nologo: bool = config.image_generation.defaults.nologo,
         private: bool = config.image_generation.defaults.private,
     ) -> None:
+        # Validation
         validate_dimensions(width, height)
         validate_prompt(prompt)
 
         total_models: int = len(config.MODELS)
 
+        if total_models == 0:
+            await interaction.response.send_message(
+                embed=SafeEmbed(
+                    title="No Models Available",
+                    description="No AI models are currently available for multi-pollination.",
+                    color=int(config.ui.colors.error, 16),
+                ),
+                ephemeral=True,
+            )
+            return
+
         await interaction.response.send_message(
             embed=SafeEmbed(
-                title="Generating Image",
+                title="Generating Images",
                 description=f"Generating images across {total_models} models...\n"
                 f"Completed: 0/{total_models} 0%",
                 color=int(config.ui.colors.success, 16),
@@ -167,6 +92,15 @@ class Multi_pollinate(commands.Cog):
         response: discord.InteractionMessage = await interaction.original_response()
         start_time: datetime.datetime = datetime.datetime.now()
 
+        # Log generation start
+        self.log_generation_start(
+            model="multi-model",
+            dimensions={"width": width, "height": height},
+            cached=cached,
+            action="multi_generate",
+        )
+
+        # Use MultiImageRequestBuilder for consistent parameter handling
         command_args = {
             "prompt": prompt,
             "width": width,
@@ -226,7 +160,7 @@ class Multi_pollinate(commands.Cog):
                 timeout=self.command_config.timeout_seconds,
             )
         except asyncio.TimeoutError:
-            raise asyncio.TimeoutError
+            raise asyncio.TimeoutError("Multi-pollination timed out")
 
         image_urls, embeds, files = [], [], []
         errors = []
@@ -245,98 +179,78 @@ class Multi_pollinate(commands.Cog):
             embeds.append(embed)
 
         if errors:
-            print(errors)
+            print(f"Multi-pollinate errors: {errors}")
 
         if not embeds:
             raise NoImagesGeneratedError(
                 "\n".join(errors) if errors else "No images were generated"
             )
 
+        # Set the first image URL for all embeds (for consistency)
         for i in range(len(embeds)):
-            embeds[i].url = image_urls[0]
+            embeds[i].url = image_urls[0] if image_urls else ""
 
         time_taken: datetime.timedelta = datetime.datetime.now() - start_time
 
+        # Log completion
+        self.log_generation_complete(
+            model="multi-model",
+            dimensions={"width": width, "height": height},
+            generation_time=time_taken.total_seconds(),
+            cached=cached,
+            action="multi_generate",
+        )
+
+        # Add metadata to first embed
         embeds[0].add_field(name="Prompt", value=f"```{prompt}```", inline=False)
         embeds[0].add_field(
             name="Total Processing Time",
             value=f"```{time_taken.total_seconds():.2f}s```",
         )
+        embeds[0].add_field(
+            name="Models Used",
+            value=f"```{len(embeds)} models```",
+            inline=True,
+        )
+        embeds[0].add_field(
+            name="Dimensions", value=f"```{width}x{height}```", inline=True
+        )
 
         embeds[0].set_user_footer(interaction, "Generated by")
 
+        # Send response using base class method
         if private:
             await interaction.followup.send(embeds=embeds, files=files, ephemeral=True)
         else:
-            await response.edit(embeds=embeds, attachments=files)
+            # For multi-pollinate, we need to edit the response with the grid
+            view = MultiPollinateView(image_count=len(embeds))
+            await response.edit(embeds=embeds, attachments=files, view=view)
 
     @multiimagine_command.error
     async def multiimagine_command_error(
         self, interaction: discord.Interaction, error: app_commands.AppCommandError
     ) -> None:
-        """Centralized error handler for the multiimagine command."""
+        """Handle command errors using centralized error handling."""
+        # Handle timeout specially for multi-pollinate
+        if isinstance(error, asyncio.TimeoutError):
+            from utils.error_handler import send_error_embed
 
-        if isinstance(error, app_commands.CommandOnCooldown):
-            embed: SafeEmbed = await generate_error_message(
-                interaction,
-                error,
-                cooldown_configuration=[
-                    f"- {self.command_config.cooldown.rate} time every {self.command_config.cooldown.seconds} seconds",
-                ],
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        elif isinstance(error, asyncio.TimeoutError):
             await send_error_embed(
                 interaction,
                 "Timeout Error",
-                config.ui.error_messages["timeout"],
+                config.ui.error_messages.get("timeout", "Operation timed out"),
                 delete_after_minutes=2,
             )
-
-        elif isinstance(error, NoImagesGeneratedError):
-            await send_error_embed(
-                interaction,
-                "Generation Failed",
-                f"Failed to generate any images:\n```\n{str(error)}\n```",
-                delete_after_minutes=2,
-            )
-
-        elif isinstance(error, PromptTooLongError):
-            await send_error_embed(
-                interaction,
-                "Prompt Too Long",
-                f"```\n{str(error)}\n```",
-                delete_after_minutes=0.5,
-            )
-
-        elif isinstance(error, APIError):
-            await send_error_embed(
-                interaction,
-                "Couldn't Generate the Requested Image 😔",
-                f"```\n{str(error)}\n```",
-                delete_after_minutes=2,
-            )
-
-        elif isinstance(error, DimensionTooSmallError):
-            await send_error_embed(
-                interaction,
-                "Dimensions Too Small",
-                f"```\n{str(error)}\n```",
-                delete_after_minutes=0.5,
-            )
-
         else:
-            await send_error_embed(
+            await self.handle_command_error(
                 interaction,
-                config.ui.error_messages["unknown"],
-                f"```\n{str(error)}\n```",
-                delete_after_minutes=2,
+                error,
+                prompt=getattr(interaction.namespace, "prompt", "unknown"),
+                width=getattr(interaction.namespace, "width", 0),
+                height=getattr(interaction.namespace, "height", 0),
             )
 
 
 async def setup(bot) -> None:
+    """Setup function for the cog."""
     await bot.add_cog(Multi_pollinate(bot))
-    discord_logger.log_bot_event(
-        action="cog_setup", status="success", details={"cog": "Multi_pollinate"}
-    )
