@@ -26,8 +26,10 @@ async def list_py_files(path: str) -> list[str]:
         logger.warning(f"Async directory listing failed, falling back to sync: {e}")
         files = os.listdir(path)
 
-    # Filter for Python files and remove .py extension
-    py_files = [f[:-3] for f in files if f.endswith(".py")]
+    # Filter for Python files and remove .py extension, but skip base_command_cog.py
+    py_files = [
+        f[:-3] for f in files if f.endswith(".py") and f != "base_command_cog.py"
+    ]
     logger.info(f"Found {len(py_files)} Python files in {path}: {py_files}")
 
     return py_files
